@@ -1,0 +1,14 @@
+E:\Workspace\VisualStudio\Conquest\Conquest\bin\Debug\Conquest.exe.config
+E:\Workspace\VisualStudio\Conquest\Conquest\bin\Debug\Conquest.exe
+E:\Workspace\VisualStudio\Conquest\Conquest\bin\Debug\Conquest.pdb
+E:\Workspace\VisualStudio\Conquest\Conquest\obj\Debug\MainWindow.g.cs
+E:\Workspace\VisualStudio\Conquest\Conquest\obj\Debug\App.g.cs
+E:\Workspace\VisualStudio\Conquest\Conquest\obj\Debug\Conquest_MarkupCompile.cache
+E:\Workspace\VisualStudio\Conquest\Conquest\obj\Debug\Conquest_MarkupCompile.lref
+E:\Workspace\VisualStudio\Conquest\Conquest\obj\Debug\MainWindow.baml
+E:\Workspace\VisualStudio\Conquest\Conquest\obj\Debug\Conquest.g.resources
+E:\Workspace\VisualStudio\Conquest\Conquest\obj\Debug\Conquest.Properties.Resources.resources
+E:\Workspace\VisualStudio\Conquest\Conquest\obj\Debug\Conquest.csproj.GenerateResource.Cache
+E:\Workspace\VisualStudio\Conquest\Conquest\obj\Debug\Conquest.exe
+E:\Workspace\VisualStudio\Conquest\Conquest\obj\Debug\Conquest.pdb
+E:\Workspace\VisualStudio\Conquest\Conquest\obj\Debug\Conquest.csprojResolveAssemblyReference.cache

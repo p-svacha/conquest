@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Conquest.MapClasses
 {
@@ -11,12 +12,22 @@ namespace Conquest.MapClasses
     {
         public int Id;
         public string Name;
+        public Point Center;
+        public List<Point> Pixels;
+        public List<Country> Neighbours;
         public Continent Continent;
         public Player Player;
 
         public Country(int id)
         {
+            Neighbours = new List<Country>();
+            Pixels = new List<Point>();
             this.Id = id;
+        }
+
+        public void AddNeighbour(Country c)
+        {
+            if (!Neighbours.Contains(c)) Neighbours.Add(c);
         }
     }
 }

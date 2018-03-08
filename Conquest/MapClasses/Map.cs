@@ -90,6 +90,26 @@ namespace Conquest.MapClasses
             writeableBitmap.CopyPixels(Pixels, Stride, 0);
         }
 
+        public void FillCountry(Country country, Color color)
+        {
+            writeableBitmap.Lock();
+            unsafe
+            {
+                foreach (Point p in country.Pixels)
+                {
+                    int pBackBuffer = (int)writeableBitmap.BackBuffer;
+                    pBackBuffer += (int)p.Y * writeableBitmap.BackBufferStride;
+                    pBackBuffer += (int)p.X * 4;
+                    int color_data = color.R << 0; // R
+                    color_data |= color.G << 8;   // G
+                    color_data |= color.B << 16;   // B
+                    *((int*)pBackBuffer) = color_data;
+                    writeableBitmap.AddDirtyRect(new Int32Rect((int)p.X, (int)p.Y, 1, 1));
+                }
+            }
+            writeableBitmap.Unlock();
+        }
+
         public int Width
         {
             get

@@ -1,4 +1,5 @@
 ﻿using Conquest.Model;
+using Conquest.UI;
 using System;
 using System.Windows;
 using System.Windows.Controls;
@@ -11,34 +12,37 @@ namespace Conquest
     public partial class MainWindow : Window
     {
         private GameModel Model;
-        private Image MapImage;
 
         public MainWindow()
         {
             InitializeComponent();
-            Model = new GameModel();
+            UIManager UIManager = new UIManager(InfoPanel, CoordinatesLabel);
+            Model = new GameModel(UIManager);
             
             BitmapImage bitImg = new BitmapImage(new Uri("../../Resources/Maps/test2.png", UriKind.Relative));
+            MapColumn.Width = new GridLength(bitImg.PixelWidth);
             bitImg.CreateOptions = BitmapCreateOptions.None;
             Model.SetMap(bitImg);
 
-            MapImage = Model.GetMapImage();
-            Map.Children.Add(MapImage);
+            Map.Children.Add(Model.GetMapImage());
 
-            MapImage.MouseMove += new MouseEventHandler(MouseMove);
-            MapImage.MouseDown += new MouseButtonEventHandler(MouseDown);
+            MouseMove += new MouseEventHandler(MainWindowMouseMoved);
+            MouseDown += new MouseButtonEventHandler(MainWindowMouseDown);
         }
 
-        new void MouseMove(object sender, MouseEventArgs e)
+        private void MainWindowMouseMoved(object sender, MouseEventArgs e)
         {
-            CoordinatesLabel.Content = (int)e.GetPosition(MapImage).X + " / " + (int)e.GetPosition(MapImage).Y;
+            Model.MouseMove(sender, e);
         }
 
-        new void MouseDown(object sender, MouseButtonEventArgs e)
+        private void MainWindowMouseDown(object sender, MouseButtonEventArgs e)
         {
-            //Model.FloodFill((int)e.GetPosition(MapImage).X, (int)e.GetPosition(MapImage).Y, Model.GetMapPixel((int)e.GetPosition(MapImage).X, (int)e.GetPosition(MapImage).Y), Color.FromArgb(0, 255, 0, 0));
+            Model.MouseDown(sender, e);
         }
 
-
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            Model.StartGame(Convert.ToInt32(NumPlayers.Text), Convert.ToInt32(NumStartingCountries.Text));
+        }
     }
 }

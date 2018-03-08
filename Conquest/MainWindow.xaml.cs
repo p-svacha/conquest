@@ -11,33 +11,32 @@ namespace Conquest
     public partial class MainWindow : Window
     {
         private GameModel Model;
+        private Image MapImage;
 
         public MainWindow()
         {
             InitializeComponent();
             Model = new GameModel();
             
-            WriteableBitmap bitmap = new WriteableBitmap((int) (Map.Width), (int) (Map.Height), 96, 96, PixelFormats.Bgr32, null);
-            BitmapImage bitImg = new BitmapImage(new Uri("../../Resources/Maps/test.png", UriKind.Relative));
+            BitmapImage bitImg = new BitmapImage(new Uri("../../Resources/Maps/test2.png", UriKind.Relative));
             bitImg.CreateOptions = BitmapCreateOptions.None;
             Model.SetMap(bitImg);
-            for(int y = 0; y < bitImg.PixelHeight; y++)
-            {
-                for(int x = 0; x < bitImg.PixelWidth; x++)
-                {
-                    Model.SetMapPixel(x, y, Model.GetMapPixel(x,y));
-                }
-            }
 
-            Image mapImage = Model.GetMapImage();
-            Map.Children.Add(mapImage);
+            MapImage = Model.GetMapImage();
+            Map.Children.Add(MapImage);
 
-            mapImage.MouseMove += new MouseEventHandler(MouseMove);
+            MapImage.MouseMove += new MouseEventHandler(MouseMove);
+            MapImage.MouseDown += new MouseButtonEventHandler(MouseDown);
         }
 
         new void MouseMove(object sender, MouseEventArgs e)
         {
-            CoordinatesLabel.Content = (int)e.GetPosition(img).X + " / " + (int)e.GetPosition(img).Y;
+            CoordinatesLabel.Content = (int)e.GetPosition(MapImage).X + " / " + (int)e.GetPosition(MapImage).Y;
+        }
+
+        new void MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            //Model.FloodFill((int)e.GetPosition(MapImage).X, (int)e.GetPosition(MapImage).Y, Model.GetMapPixel((int)e.GetPosition(MapImage).X, (int)e.GetPosition(MapImage).Y), Color.FromArgb(0, 255, 0, 0));
         }
 
 

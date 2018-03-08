@@ -23,7 +23,7 @@ namespace Conquest.MapClasses
             int size = bitmapImage.PixelHeight * Stride;
             Pixels = new byte[size];
             bitmapImage.CopyPixels(Pixels, Stride, 0);
-            writeableBitmap = new WriteableBitmap(bitmapImage);
+            writeableBitmap = new WriteableBitmap((int)(bitmapImage.PixelWidth), (int)(bitmapImage.PixelHeight), 96, 96, PixelFormats.Bgr32, null);
             image = new Image();
             RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
             RenderOptions.SetEdgeMode(image, EdgeMode.Unspecified);
@@ -38,6 +38,29 @@ namespace Conquest.MapClasses
             return image;
         }
 
+        public void RefreshMap()
+        {
+            writeableBitmap.Lock();
+            unsafe
+            {
+                for (int y = 0; y < writeableBitmap.PixelHeight; y++)
+                {
+                    for (int x = 0; x < writeableBitmap.PixelWidth; x++)
+                    {
+                        Color c = GetPixel(x, y);
+                        int pBackBuffer = (int)writeableBitmap.BackBuffer;
+                        pBackBuffer += y * writeableBitmap.BackBufferStride;
+                        pBackBuffer += x * 4;
+                        int color_data = c.R << 0; // R
+                        color_data |= c.G << 8;   // G
+                        color_data |= c.B << 16;   // B
+                        *((int*)pBackBuffer) = color_data;
+                        writeableBitmap.AddDirtyRect(new Int32Rect(x, y, 1, 1));
+                    }
+                }
+            }
+            writeableBitmap.Unlock();
+        }
         public Color GetPixel(int x, int y)
         {
             
@@ -57,13 +80,29 @@ namespace Conquest.MapClasses
                 int pBackBuffer = (int)writeableBitmap.BackBuffer;
                 pBackBuffer += y * writeableBitmap.BackBufferStride;
                 pBackBuffer += x * 4;
-                int color_data = c.R << 0; // R
+                int color_data = c.R << 16; // R
                 color_data |= c.G << 8;   // G
-                color_data |= c.B << 16;   // B
+                color_data |= c.B << 0;   // B
                 *((int*)pBackBuffer) = color_data;
             }
             writeableBitmap.AddDirtyRect(new Int32Rect(x, y, 1, 1));
             writeableBitmap.Unlock();
+            writeableBitmap.CopyPixels(Pixels, Stride, 0);
+        }
+
+        public int Width
+        {
+            get
+            {
+                return writeableBitmap.PixelWidth;
+            }
+        }
+        public int Height
+        {
+            get
+            {
+                return writeableBitmap.PixelHeight;
+            }
         }
     }
 }

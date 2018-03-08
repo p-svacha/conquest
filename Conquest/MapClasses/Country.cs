@@ -9,8 +9,14 @@ namespace Conquest.MapClasses
 {
     class Country
     {
+        public int Id;
         public string Name;
         public Continent Continent;
         public Player Player;
+
+        public Country(int id)
+        {
+            this.Id = id;
+        }
     }
 }

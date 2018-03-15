@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -27,6 +28,7 @@ namespace Conquest.Model
         private const int BORDER = -2;
         private const int OCEAN = -3;
         private const int STARTVALUE = -99;
+        private List<Point> CompletedPoints = new List<Point>();
 
         private UIManager UIManager;
         private List<Player> Players;
@@ -34,9 +36,9 @@ namespace Conquest.Model
         private List<Continent> Continents;
         private int[,] CountryMap;
         private Map Map;
-        private Random Random;
-        private Color White;
-        private Color Black;
+        private static Random Random;
+        public static Color White;
+        public static Color Black;
 
 
         private GameState State;
@@ -69,14 +71,22 @@ namespace Conquest.Model
                     break;
 
                 case GameState.Initializing:
-                    Action action = ActionQueue[0];
-                    ActionQueue.Remove(action);
-                    action.Invoke();
-                    if (ActionQueue.Count == 0) SetState(GameState.Idle);
+                    for (int i = 0; i < 20; i++)
+                    {
+                        Action action = ActionQueue[0];
+                        ActionQueue.Remove(action);
+                        action.Invoke();
+                        if (ActionQueue.Count == 0)
+                        {
+                            SetState(GameState.Idle);
+                            break;
+                        }
+                    }
                     break;
             }
         }
 
+        //----------------------------GAME COMMANDS----------------------------------
         private void TakeCountry(Country c, Player p)
         {
             if(c.Player != null)
@@ -85,7 +95,24 @@ namespace Conquest.Model
             }
             c.Player = p;
             p.Countries.Add(c);
-            Map.FillCountry(c, p.Color);
+            RefreshMap();
+        }
+
+        private void DistributeArmy(Country c)
+        {
+            c.Army++;
+            RefreshMap();
+        }
+
+        //-----------------------------END GAME COMMANDS-------------------------------------
+
+        private void RefreshMap()
+        {
+            foreach(Country c in Countries)
+            {
+                Map.FillCountry(c);
+                Map.DrawArmy(c);
+            }
         }
 
         private void Initialize()
@@ -99,6 +126,7 @@ namespace Conquest.Model
                     ActionQueue.Add(() => FloodFill(true, realX, realY, STARTVALUE));
                 }
             }
+            ActionQueue.Add(() => { foreach (Country c in Countries) c.SetCenter(); });
         }
 
         public void SetMap(BitmapImage image)
@@ -152,14 +180,28 @@ namespace Conquest.Model
                 {
                     id = Countries.Count();
                     Countries.Add(new Country(id));
+                    CompletedPoints.Clear();
                 }
-                //Map.SetPixel(x, y, to);
                 CountryMap[x, y] = id;
                 Countries[id].Pixels.Add(new System.Windows.Point(x, y));
-                ActionQueue.Insert(0, () => FloodFill(false, x - 1 < 0 ? 0 : x - 1, y, id));
-                ActionQueue.Insert(0, () => FloodFill(false, x + 1 > Map.Width-1 ? Map.Width-1 : x + 1, y, id));
-                ActionQueue.Insert(0, () => FloodFill(false, x, y - 1 < 0 ? 0 : y - 1, id));
-                ActionQueue.Insert(0, () => FloodFill(false, x, y + 1 > Map.Height-1 ? Map.Height-1 : y + 1, id));
+                if (!CompletedPoints.Contains(new Point(x - 1 < 0 ? 0 : x - 1, y))) {
+                    CompletedPoints.Add(new Point(x - 1 < 0 ? 0 : x - 1, y));
+                    ActionQueue.Insert(0, () => FloodFill(false, x - 1 < 0 ? 0 : x - 1, y, id));
+                }
+                if (!CompletedPoints.Contains(new Point(x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y))) {
+                    CompletedPoints.Add(new Point(x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y));
+                    ActionQueue.Insert(0, () => FloodFill(false, x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y, id));
+                }
+                if (!CompletedPoints.Contains(new Point(x, y - 1 < 0 ? 0 : y - 1)))
+                {
+                    CompletedPoints.Add(new Point(x, y - 1 < 0 ? 0 : y - 1));
+                    ActionQueue.Insert(0, () => FloodFill(false, x, y - 1 < 0 ? 0 : y - 1, id));
+                }
+                if (!CompletedPoints.Contains(new Point(x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1)))
+                {
+                    CompletedPoints.Add(new Point(x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1));
+                    ActionQueue.Insert(0, () => FloodFill(false, x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1, id));
+                }
             }
         }
 
@@ -208,17 +250,21 @@ namespace Conquest.Model
         {
             foreach (Country c in Countries)
             {
-                Map.FillCountry(c, White);
+                Map.FillCountry(c);
                 c.Player = null;
+                c.Army = 0;
             }
             Players.Clear();
         }
 
-        public void StartGame(int numPlayers, int numCountries)
+        public void StartGame(int numPlayers, int numCountries, int numArmy)
         {
             if (State == GameState.Started || State == GameState.Initializing) return;
             ResetGame();
-            for (int i = 0; i < numPlayers; i++) Players.Add(new Player(RandomColor()));
+            for (int i = 0; i < numPlayers; i++)
+            {
+                Players.Add(new Player(RandomColor(Players.Select(p => p.PrimaryColor).ToArray())));
+            }
 
             List<int> countryIds = new List<int>();
             for (int j = 0; j < Countries.Count; j++) countryIds.Add(j);
@@ -230,7 +276,13 @@ namespace Conquest.Model
                     Console.WriteLine(id);
                     countryIds.Remove(id);
                     TakeCountry(Countries[id], Players[i]);
+                    DistributeArmy(Countries[id]);
                 }
+
+                for(int j = 0; j < numArmy - numCountries; j++)
+                {
+                    DistributeArmy(Players[i].Countries[Random.Next(Players[i].Countries.Count)]);
+                } 
             }
             SetState(GameState.Playing);
         }
@@ -240,11 +292,26 @@ namespace Conquest.Model
             return x >= 0 && x < Map.Width && y >= 0 && y < Map.Height;
         }
 
-        public Color RandomColor()
+        public static Color RandomColor(Color[] others = null, int tolerance = 150)
         {
-            byte[] colorData = new byte[3];
-            Random.NextBytes(colorData);
-            return Color.FromArgb(0, colorData[0], colorData[1], colorData[2]);
+            Color toReturn = Color.FromArgb(255, 0, 0, 0);
+            bool tooSimilar = true;
+            while (tooSimilar)
+            {
+                tooSimilar = false;
+                byte[] colorData = new byte[3];
+                Random.NextBytes(colorData);
+                toReturn = Color.FromArgb(255, colorData[0], colorData[1], colorData[2]);
+                if (others != null)
+                {
+                    foreach (Color other in others)
+                    {
+                        int diff = Math.Abs(other.R - toReturn.R) + Math.Abs(other.G - toReturn.G) + Math.Abs(other.B - toReturn.B);
+                        if (diff < tolerance) tooSimilar = true;
+                    }
+                }
+            }
+            return toReturn;
         }
     }
 }

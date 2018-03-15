@@ -1,4 +1,5 @@
 ﻿using Conquest.MapClasses;
+using Conquest.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,13 +11,16 @@ namespace Conquest.PlayerClasses
 {
     class Player
     {
-        public Color Color;
+        public Color PrimaryColor;
+        public Color SecondaryColor;
         public List<Country> Countries;
         public List<Continent> Continents;
 
-        public Player(Color c)
+        public Player(Color primary)
         {
-            Color = c;
+            PrimaryColor = primary;
+            SecondaryColor = GameModel.RandomColor(new Color[] { PrimaryColor }, 300);
+
             Countries = new List<Country>();
             Continents = new List<Continent>();
         }

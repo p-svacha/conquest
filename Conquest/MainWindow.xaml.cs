@@ -19,7 +19,7 @@ namespace Conquest
             UIManager UIManager = new UIManager(InfoPanel, CoordinatesLabel);
             Model = new GameModel(UIManager);
             
-            BitmapImage bitImg = new BitmapImage(new Uri("../../Resources/Maps/test2.png", UriKind.Relative));
+            BitmapImage bitImg = new BitmapImage(new Uri("../../Resources/Maps/test4.png", UriKind.Relative));
             MapColumn.Width = new GridLength(bitImg.PixelWidth);
             bitImg.CreateOptions = BitmapCreateOptions.None;
             Model.SetMap(bitImg);
@@ -42,7 +42,7 @@ namespace Conquest
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            Model.StartGame(Convert.ToInt32(NumPlayers.Text), Convert.ToInt32(NumStartingCountries.Text));
+            Model.StartGame(Convert.ToInt32(NumPlayers.Text), Convert.ToInt32(NumStartingCountries.Text), Convert.ToInt32(NumStartingArmy.Text));
         }
     }
 }

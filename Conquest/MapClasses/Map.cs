@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Conquest.Model;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -63,7 +64,6 @@ namespace Conquest.MapClasses
         }
         public Color GetPixel(int x, int y)
         {
-            
             int index = y * Stride + 4 * x;
             byte red = Pixels[index];
             byte green = Pixels[index + 1];
@@ -90,8 +90,9 @@ namespace Conquest.MapClasses
             writeableBitmap.CopyPixels(Pixels, Stride, 0);
         }
 
-        public void FillCountry(Country country, Color color)
+        public void FillCountry(Country country)
         {
+            Color color = country.Player == null ? GameModel.White : country.Player.PrimaryColor;
             writeableBitmap.Lock();
             unsafe
             {
@@ -109,6 +110,18 @@ namespace Conquest.MapClasses
             }
             writeableBitmap.Unlock();
         }
+        public void DrawArmy(Country c)
+        {
+            if (c.Army > 0)
+            {
+                Color color = c.Player == null ? GameModel.White : c.Player.SecondaryColor;
+
+                int posX = ((int)c.Center.X);
+                int posY = ((int)c.Center.Y);
+                writeableBitmap.FillEllipseCentered(posX, posY, c.Army/2, c.Army/2, color);
+            }
+        }
+
 
         public int Width
         {

@@ -27,3 +27,6 @@ C:\Microsoft\conquest\Conquest\obj\Debug\Conquest.csproj.GenerateResource.Cache
 C:\Microsoft\conquest\Conquest\obj\Debug\Conquest.csproj.CoreCompileInputs.cache
 C:\Microsoft\conquest\Conquest\obj\Debug\Conquest.exe
 C:\Microsoft\conquest\Conquest\obj\Debug\Conquest.pdb
+C:\Microsoft\conquest\Conquest\bin\Debug\WriteableBitmapEx.Wpf.dll
+C:\Microsoft\conquest\Conquest\bin\Debug\WriteableBitmapEx.Wpf.pdb
+C:\Microsoft\conquest\Conquest\bin\Debug\WriteableBitmapEx.Wpf.xml

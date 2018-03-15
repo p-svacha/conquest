@@ -12,6 +12,7 @@ namespace Conquest.MapClasses
     {
         public int Id;
         public string Name;
+        public int Army;
         public Point Center;
         public List<Point> Pixels;
         public List<Country> Neighbours;
@@ -28,6 +29,18 @@ namespace Conquest.MapClasses
         public void AddNeighbour(Country c)
         {
             if (!Neighbours.Contains(c)) Neighbours.Add(c);
+        }
+
+        public void SetCenter()
+        {
+            int xSum = 0;
+            int ySum = 0;
+            foreach(Point p in Pixels)
+            {
+                xSum += (int)p.X;
+                ySum += (int)p.Y;
+            }
+            Center = new Point(xSum / Pixels.Count, ySum / Pixels.Count);
         }
     }
 }

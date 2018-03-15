@@ -21,10 +21,12 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <TextBox Name="NumPlayers" Grid.Column="0"></TextBox>
-                    <TextBox Name="NumStartingCountries" Grid.Column="1"></TextBox>
-                    <Button Grid.Column="2" Content="Start" Click="Button_Click"></Button>
+                    <TextBox Name="NumPlayers" Grid.Column="0" Text="3"></TextBox>
+                    <TextBox Name="NumStartingCountries" Grid.Column="1" Text="3"></TextBox>
+                    <TextBox Name="NumStartingArmy" Grid.Column="2" Text="10"></TextBox>
+                    <Button Grid.Column="3" Content="Start" Click="Button_Click"></Button>
                 </Grid>
                 <Label Margin="10 10 10 10" Name="CoordinatesLabel" Content="D" HorizontalAlignment="Center"></Label>
                 <StackPanel Name="InfoPanel"></StackPanel>

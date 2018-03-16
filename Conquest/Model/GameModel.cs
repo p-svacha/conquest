@@ -25,7 +25,7 @@ namespace Conquest.Model
             Playing
         }
 
-        private const int SELECTED_WIDTH = 5;
+        private const int SELECTED_WIDTH = 4;
 
         private const int UNASSIGNED_COUNTRY = -1;
         private const int BORDER = -2;
@@ -38,6 +38,7 @@ namespace Conquest.Model
         private List<Country> Countries;
         private List<Continent> Continents;
         private int[,] CountryMap;
+        private int[,] DistanceToNearestBorder;
         private Map Map;
         private static Random Random;
         public static Color White;
@@ -81,6 +82,8 @@ namespace Conquest.Model
                         action.Invoke();
                         if (ActionQueue.Count == 0)
                         {
+                            FindBorders();
+                            SetCenters();
                             SetState(GameState.Idle);
                             break;
                         }
@@ -118,30 +121,17 @@ namespace Conquest.Model
             }
         }
 
-        private void Initialize()
-        {
-            for(int y = 0; y < Map.Height; y++)
-            {
-                for(int x = 0; x < Map.Width; x++)
-                {
-                    int realX = x;
-                    int realY = y;
-                    ActionQueue.Add(() => FloodFill(true, realX, realY, STARTVALUE));
-                }
-            }
-            ActionQueue.Add(() => { foreach (Country c in Countries) c.SetCenter(); });
-            ActionQueue.Add(() => FindBorders(SELECTED_WIDTH));
-        }
-
         public void SetMap(BitmapImage image)
         {
             Map.SetMap(image);
             Map.RefreshMap();
             CountryMap = new int[Map.Width, Map.Height];
+            DistanceToNearestBorder = new int[Map.Width, Map.Height];
             for (int y = 0; y < Map.Height; y++)
             {
                 for (int x = 0; x < Map.Width; x++)
                 {
+                    DistanceToNearestBorder[x, y] = int.MaxValue;
                     if (Map.GetPixel(x, y).Equals(White)) CountryMap[x, y] = UNASSIGNED_COUNTRY;
                     else if (Map.GetPixel(x, y).Equals(Black)) CountryMap[x, y] = BORDER;
                     else CountryMap[x, y] = OCEAN;
@@ -168,6 +158,21 @@ namespace Conquest.Model
         {
             Console.WriteLine("Changed from state {0} to {1}.", State.ToString(), state.ToString());
             State = state;
+        }
+
+        //------------------------------------------------------INIT--------------------------------------------------
+        private void Initialize()
+        {
+            for (int y = 0; y < Map.Height; y++)
+            {
+                for (int x = 0; x < Map.Width; x++)
+                {
+                    int realX = x;
+                    int realY = y;
+                    ActionQueue.Add(() => FloodFill(true, realX, realY, STARTVALUE));
+                }
+            }
+            ActionQueue.Add(() => FindDistancesToNearestBorder());
         }
 
         public void FloodFill(bool start, int x, int y, int id)
@@ -235,30 +240,55 @@ namespace Conquest.Model
             }
         }
 
-        private void FindBorders(int borderWidth)
+        private void FindDistancesToNearestBorder()
+        {
+            for(int y = 0; y < Map.Height; y++)
+            {
+                for(int x = 0; x < Map.Width; x++)
+                {
+                    if (x == 0 || x == Map.Width - 1 || y == 0 || y == Map.Height - 1 || Map.GetPixel(x, y).Equals(Black)) Spread(x, y, 0);
+                }
+            }
+        }
+
+        private void Spread(int x, int y, int distance)
+        {
+            DistanceToNearestBorder[x, y] = distance;
+            ActionQueue.Add(() => { if (distance + 1 < DistanceToNearestBorder[x - 1 < 0 ? 0 : x - 1, y]) Spread(x - 1 < 0 ? 0 : x - 1, y, distance + 1); });
+            ActionQueue.Add(() => { if (distance + 1 < DistanceToNearestBorder[x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y]) Spread(x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y, distance + 1); });
+            ActionQueue.Add(() => { if (distance + 1 < DistanceToNearestBorder[x, y - 1 < 0 ? 0 : y - 1]) Spread(x, y - 1 < 0 ? 0 : y - 1, distance + 1); });
+            ActionQueue.Add(() => { if (distance + 1 < DistanceToNearestBorder[x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1]) Spread(x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1, distance + 1); });
+        }
+
+        private void FindBorders()
         {
             foreach(Country c in Countries)
             {
                 foreach(Point p in c.AreaPixels)
                 {
-                    if (CheckBorder((int)p.X, (int)p.Y, borderWidth)) c.BorderPixels.Add(new Point(p.X, p.Y));
+                    if (DistanceToNearestBorder[(int)p.X,(int)p.Y] <= SELECTED_WIDTH) c.BorderPixels.Add(new Point(p.X, p.Y));
                 }
             }
         }
 
-        private bool CheckBorder(int x, int y, int range)
+        private void SetCenters()
         {
-            if ( x < 0 || x >= Map.Width || y < 0 || y >= Map.Height || Map.GetPixel(x, y).Equals(Black)) return true;
-            else if (range == 0) return false;
-            else
+            foreach(Country c in Countries)
             {
-                return CheckBorder(x - 1, y, range - 1)
-                    || CheckBorder(x + 1, y, range - 1)
-                    || CheckBorder(x, y - 1, range - 1)
-                    || CheckBorder(x, y + 1, range - 1);
+                Point tempCenter = new Point(-1, -1);
+                int furthestDistance = -1;
+                foreach(Point p in c.AreaPixels)
+                {
+                    if (DistanceToNearestBorder[(int)p.X, (int)p.Y] > furthestDistance)
+                    {
+                        tempCenter = new Point(p.X, p.Y);
+                        furthestDistance = DistanceToNearestBorder[(int)p.X, (int)p.Y];
+                    }
+                }
+                c.Center = new Point(tempCenter.X, tempCenter.Y);
             }
-
         }
+        //-----------------------------------------------------------------END INIT------------------------------------------------------------
 
         public void MouseMove(Object sender, MouseEventArgs e)
         {

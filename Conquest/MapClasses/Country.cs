@@ -33,17 +33,5 @@ namespace Conquest.MapClasses
         {
             if (!Neighbours.Contains(c)) Neighbours.Add(c);
         }
-
-        public void SetCenter()
-        {
-            int xSum = 0;
-            int ySum = 0;
-            foreach(Point p in AreaPixels)
-            {
-                xSum += (int)p.X;
-                ySum += (int)p.Y;
-            }
-            Center = new Point(xSum / AreaPixels.Count, ySum / AreaPixels.Count);
-        }
     }
 }

@@ -12,11 +12,13 @@ namespace Conquest.UI
     class UIManager
     {
         private Label CoordinatesLabel;
+        private Label NearestBorderLabel;
         private Grid InfoPanel;
 
-        public UIManager(Grid infoPanel, Label coordinatesLabel)
+        public UIManager(Grid infoPanel, Label coordinatesLabel, Label nearestBorderLabel)
         {
             CoordinatesLabel = coordinatesLabel;
+            NearestBorderLabel = nearestBorderLabel;
             InfoPanel = infoPanel;
         }
 
@@ -47,6 +49,11 @@ namespace Conquest.UI
         public void SetCoordinates(int x, int y)
         {
             CoordinatesLabel.Content = x + " / " + y;
+        }
+
+        public void SetNearestBorder(int d)
+        {
+            NearestBorderLabel.Content = d;
         }
 
         private Label InfoLabel(string content, int row, int column, int columnSpan = 1)

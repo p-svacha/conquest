@@ -111,7 +111,7 @@ namespace Conquest.MapClasses
                 {
                     foreach (Point p in country.BorderPixels)
                     {
-                        Color color = country.Player == null ? GameModel.White : country.Player.SecondaryColor;
+                        Color color = country.Player == null ? GameModel.Black : country.Player.SecondaryColor;
                         int pBackBuffer = (int)writeableBitmap.BackBuffer;
                         pBackBuffer += (int)p.Y * writeableBitmap.BackBufferStride;
                         pBackBuffer += (int)p.X * 4;
@@ -133,7 +133,7 @@ namespace Conquest.MapClasses
 
                 int posX = ((int)c.Center.X);
                 int posY = ((int)c.Center.Y);
-                writeableBitmap.FillEllipseCentered(posX, posY, c.Army/2, c.Army/2, color);
+                writeableBitmap.FillEllipseCentered(posX, posY, c.Army, c.Army, color);
             }
         }
 

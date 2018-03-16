@@ -24,6 +24,9 @@ namespace Conquest.Model
             Idle,
             Playing
         }
+
+        private const int SELECTED_WIDTH = 5;
+
         private const int UNASSIGNED_COUNTRY = -1;
         private const int BORDER = -2;
         private const int OCEAN = -3;
@@ -110,7 +113,7 @@ namespace Conquest.Model
         {
             foreach(Country c in Countries)
             {
-                Map.FillCountry(c);
+                Map.DrawCountry(c);
                 Map.DrawArmy(c);
             }
         }
@@ -127,6 +130,7 @@ namespace Conquest.Model
                 }
             }
             ActionQueue.Add(() => { foreach (Country c in Countries) c.SetCenter(); });
+            ActionQueue.Add(() => FindBorders(SELECTED_WIDTH));
         }
 
         public void SetMap(BitmapImage image)
@@ -183,7 +187,7 @@ namespace Conquest.Model
                     CompletedPoints.Clear();
                 }
                 CountryMap[x, y] = id;
-                Countries[id].Pixels.Add(new System.Windows.Point(x, y));
+                Countries[id].AreaPixels.Add(new System.Windows.Point(x, y));
                 if (!CompletedPoints.Contains(new Point(x - 1 < 0 ? 0 : x - 1, y))) {
                     CompletedPoints.Add(new Point(x - 1 < 0 ? 0 : x - 1, y));
                     ActionQueue.Insert(0, () => FloodFill(false, x - 1 < 0 ? 0 : x - 1, y, id));
@@ -225,9 +229,35 @@ namespace Conquest.Model
                 else
                 {
                     Countries[id].AddNeighbour(Countries[CountryMap[x, y]]);
+                    Countries[CountryMap[x, y]].AddNeighbour(Countries[id]);
                     //TODO: Border length
                 }
             }
+        }
+
+        private void FindBorders(int borderWidth)
+        {
+            foreach(Country c in Countries)
+            {
+                foreach(Point p in c.AreaPixels)
+                {
+                    if (CheckBorder((int)p.X, (int)p.Y, borderWidth)) c.BorderPixels.Add(new Point(p.X, p.Y));
+                }
+            }
+        }
+
+        private bool CheckBorder(int x, int y, int range)
+        {
+            if ( x < 0 || x >= Map.Width || y < 0 || y >= Map.Height || Map.GetPixel(x, y).Equals(Black)) return true;
+            else if (range == 0) return false;
+            else
+            {
+                return CheckBorder(x - 1, y, range - 1)
+                    || CheckBorder(x + 1, y, range - 1)
+                    || CheckBorder(x, y - 1, range - 1)
+                    || CheckBorder(x, y + 1, range - 1);
+            }
+
         }
 
         public void MouseMove(Object sender, MouseEventArgs e)
@@ -243,18 +273,25 @@ namespace Conquest.Model
 
         public void MouseDown(Object sender, MouseButtonEventArgs e)
         {
-
+            int x = (int)e.GetPosition(Map.GetMapImage()).X;
+            int y = (int)e.GetPosition(Map.GetMapImage()).Y;
+            if (CoordinatesOnMap(x, y) && CountryMap[x, y] >= 0)
+            {
+                Countries[CountryMap[x, y]].Selected = !Countries[CountryMap[x, y]].Selected;
+                RefreshMap();
+            }
         }
 
         private void ResetGame()
         {
             foreach (Country c in Countries)
             {
-                Map.FillCountry(c);
+                c.Selected = false;
                 c.Player = null;
                 c.Army = 0;
             }
             Players.Clear();
+            RefreshMap();
         }
 
         public void StartGame(int numPlayers, int numCountries, int numArmy)
@@ -273,7 +310,6 @@ namespace Conquest.Model
                 for(int j = 0; j < numCountries; j++)
                 {
                     int id = countryIds[Random.Next(countryIds.Count)];
-                    Console.WriteLine(id);
                     countryIds.Remove(id);
                     TakeCountry(Countries[id], Players[i]);
                     DistributeArmy(Countries[id]);

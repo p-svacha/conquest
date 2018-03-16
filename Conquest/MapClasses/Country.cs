@@ -14,15 +14,18 @@ namespace Conquest.MapClasses
         public string Name;
         public int Army;
         public Point Center;
-        public List<Point> Pixels;
+        public List<Point> AreaPixels;
+        public List<Point> BorderPixels;
         public List<Country> Neighbours;
         public Continent Continent;
         public Player Player;
+        public bool Selected;
 
         public Country(int id)
         {
             Neighbours = new List<Country>();
-            Pixels = new List<Point>();
+            AreaPixels = new List<Point>();
+            BorderPixels = new List<Point>();
             this.Id = id;
         }
 
@@ -35,12 +38,12 @@ namespace Conquest.MapClasses
         {
             int xSum = 0;
             int ySum = 0;
-            foreach(Point p in Pixels)
+            foreach(Point p in AreaPixels)
             {
                 xSum += (int)p.X;
                 ySum += (int)p.Y;
             }
-            Center = new Point(xSum / Pixels.Count, ySum / Pixels.Count);
+            Center = new Point(xSum / AreaPixels.Count, ySum / AreaPixels.Count);
         }
     }
 }

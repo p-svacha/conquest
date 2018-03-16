@@ -90,22 +90,37 @@ namespace Conquest.MapClasses
             writeableBitmap.CopyPixels(Pixels, Stride, 0);
         }
 
-        public void FillCountry(Country country)
+        public void DrawCountry(Country country)
         {
-            Color color = country.Player == null ? GameModel.White : country.Player.PrimaryColor;
             writeableBitmap.Lock();
             unsafe
             {
-                foreach (Point p in country.Pixels)
+                foreach (Point p in country.AreaPixels)
                 {
+                    Color color = country.Player == null ? GameModel.White : country.Player.PrimaryColor;
                     int pBackBuffer = (int)writeableBitmap.BackBuffer;
                     pBackBuffer += (int)p.Y * writeableBitmap.BackBufferStride;
                     pBackBuffer += (int)p.X * 4;
-                    int color_data = color.R << 0; // R
+                    int color_data = color.R << 16; // R
                     color_data |= color.G << 8;   // G
-                    color_data |= color.B << 16;   // B
+                    color_data |= color.B << 0;   // B
                     *((int*)pBackBuffer) = color_data;
                     writeableBitmap.AddDirtyRect(new Int32Rect((int)p.X, (int)p.Y, 1, 1));
+                }
+                if (country.Selected)
+                {
+                    foreach (Point p in country.BorderPixels)
+                    {
+                        Color color = country.Player == null ? GameModel.White : country.Player.SecondaryColor;
+                        int pBackBuffer = (int)writeableBitmap.BackBuffer;
+                        pBackBuffer += (int)p.Y * writeableBitmap.BackBufferStride;
+                        pBackBuffer += (int)p.X * 4;
+                        int color_data = color.R << 16; // R
+                        color_data |= color.G << 8;   // G
+                        color_data |= color.B << 0;   // B
+                        *((int*)pBackBuffer) = color_data;
+                        writeableBitmap.AddDirtyRect(new Int32Rect((int)p.X, (int)p.Y, 1, 1));
+                    }
                 }
             }
             writeableBitmap.Unlock();

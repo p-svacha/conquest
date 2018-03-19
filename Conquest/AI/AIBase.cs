@@ -1,0 +1,18 @@
+﻿using Conquest.MapClasses;
+using Conquest.Model;
+using Conquest.PlayerClasses;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Conquest.AI
+{
+    abstract class AIBase
+    {
+        protected Random Random = new Random();
+        protected Player Player;
+        public abstract void NextTurn(GameModel model);
+    }
+}

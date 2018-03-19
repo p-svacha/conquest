@@ -1,4 +1,5 @@
-﻿using Conquest.MapClasses;
+﻿using Conquest.AI;
+using Conquest.MapClasses;
 using Conquest.Model;
 using System;
 using System.Collections.Generic;
@@ -11,23 +12,32 @@ namespace Conquest.PlayerClasses
 {
     class Player
     {
+        public int Id;
         public Color PrimaryColor;
         public Color SecondaryColor;
         public List<Country> Countries;
         public List<Continent> Continents;
+        private AIBase AI;
 
         public bool Alive
         {
             get { return Countries.Count > 0; }
         }
 
-        public Player(Color primary)
+        public Player(int id, Color primary)
         {
+            Id = id;
             PrimaryColor = primary;
             SecondaryColor = GameModel.RandomColor(new Color[] { PrimaryColor }, 300);
 
             Countries = new List<Country>();
             Continents = new List<Continent>();
+            AI = new AI_FullRandom(this);
+        }
+
+        public void DoTurn(GameModel model)
+        {
+            AI.NextTurn(model);
         }
     }
 }

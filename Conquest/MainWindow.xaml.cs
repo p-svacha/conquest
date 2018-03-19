@@ -16,10 +16,10 @@ namespace Conquest
         public MainWindow()
         {
             InitializeComponent();
-            UIManager UIManager = new UIManager(InfoPanel, CoordinatesLabel, NearestBorderLabel);
+            UIManager UIManager = new UIManager(InfoPanel, CoordinatesLabel, NearestBorderLabel, PlayerOrder);
             Model = new GameModel(this, UIManager);
             
-            BitmapImage bitImg = new BitmapImage(new Uri("../../Resources/Maps/test3.png", UriKind.Relative));
+            BitmapImage bitImg = new BitmapImage(new Uri("../../Resources/Maps/test4.png", UriKind.Relative));
             MapColumn.Width = new GridLength(bitImg.PixelWidth);
             bitImg.CreateOptions = BitmapCreateOptions.None;
             Model.SetMap(bitImg);

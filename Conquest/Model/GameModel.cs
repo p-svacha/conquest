@@ -41,9 +41,9 @@ namespace Conquest.Model
 
         private MainWindow MainWindow;
         private UIManager UIManager;
-        private List<Player> Players;
-        private List<Country> Countries;
-        private List<Continent> Continents;
+        public List<Player> Players;
+        public List<Country> Countries;
+        public List<Continent> Continents;
         private int[,] CountryMap;
         private int[,] DistanceToNearestBorder;
         private Map Map;
@@ -110,23 +110,40 @@ namespace Conquest.Model
                     break;
 
                 case GameState.InTurn:
-                    if (ActionQueue.Count > 0) 
+                    if (ActionQueue.Count > 0)
                     {
-                        if ((DateTime.Now - lastTurnUpdate).Milliseconds > 1 / FPS_IN_TURN * 1000) {
+                        if ((DateTime.Now - lastTurnUpdate).Milliseconds > 1 / FPS_IN_TURN * 1000)
+                        {
                             Action action = ActionQueue[0];
                             ActionQueue.Remove(action);
                             action.Invoke();
                             lastTurnUpdate = DateTime.Now;
+                            if (Players.Where(p => p.Alive).Count() == 1)
+                            {
+                                Player winner = Players.Where(p => p.Alive).First();
+                                Console.WriteLine("{0} won the game!", winner.PrimaryColor);
+                                SetState(GameState.Idle);
+                            }
                         }
                     }
-                    else SetState(GameState.Playing);
+                    else
+                    {
+                        Player next;
+                        do
+                        {
+                            currentPlayer = (currentPlayer + 1) % Players.Count;
+                            next = Players[currentPlayer];
+                            UIManager.SetupPlayerOrderGrid(Players, currentPlayer);
+                        } while (!next.Alive);
+                        SetState(GameState.Playing);
+                    }
                     break;
 
             }
         }
 
         //----------------------------GAME COMMANDS----------------------------------
-        private void TakeCountry(Country c, Player p)
+        public void TakeCountry(Country c, Player p)
         {
             if (c.Player != null)
             {
@@ -137,33 +154,45 @@ namespace Conquest.Model
             RefreshMap();
         }
 
-        private void DistributeArmy(Country c)
+        public void DistributeArmy(Country c)
         {
             c.Army++;
             RefreshMap();
         }
 
-        private void Attack(Country attacker, Country defender)
+        public void Attack(Country attacker, Country defender)
         {
+            if (!attacker.Selected)
+            {
+                ActionQueue.Add(() =>
+                {
+                    attacker.Selected = true;
+                    RefreshMap();
+                });
+            }
+            if (!defender.Selected)
+            {
+                ActionQueue.Add(() =>
+                {
+                    defender.Selected = true;
+                    RefreshMap();
+                });
+            }
             ActionQueue.Add(() =>
             {
                 if (defender.Army == 0) {
-                    ActionQueue.Add(() =>
-                    {
-                        attacker.Selected = false;
-                        defender.Selected = false;
-                        TakeCountry(defender, attacker.Player);
-                        MoveArmy(attacker, defender, attacker.Army / 2);
-                        RefreshMap();
-                    });
+                    attacker.Selected = false;
+                    defender.Selected = false;
+                    if (defender.Player != null && defender.Player.Countries.Count == 1)
+                        Console.WriteLine("{0} died!", defender.Player.PrimaryColor);
+                    TakeCountry(defender, attacker.Player);
+                    MoveArmy(attacker, defender, attacker.Army / 2);
+                    RefreshMap();
                 }
                 else if (attacker.Army == 0) {
-                    ActionQueue.Add(() =>
-                    {
-                        attacker.Selected = false;
-                        defender.Selected = false;
-                        RefreshMap();
-                    });
+                    attacker.Selected = false;
+                    defender.Selected = false;
+                    RefreshMap();
                 }
                 else if (attacker.Army > 0 && defender.Army > 0)
                 {
@@ -173,13 +202,6 @@ namespace Conquest.Model
                     Attack(attacker, defender);
                 }
             });
-
-            if (Players.Where(p => p.Alive).Count() == 1)
-            {
-                Player winner = Players.Where(p => p.Alive).First();
-                Console.WriteLine("{0} won the game!", winner.PrimaryColor);
-                SetState(GameState.Idle);
-            }
         }
 
         private void MoveArmy(Country source, Country target, int amount)
@@ -195,37 +217,11 @@ namespace Conquest.Model
         {
             if (State != GameState.Playing) return;
             SetState(GameState.InTurn);
+
             Player p = Players[currentPlayer];
             OnStartTurn(p);
-            Country attacker;
-            do
-            {
-                attacker = p.Countries[Random.Next(p.Countries.Count)];
-            } while (!HasEnemyNeighbours(attacker));
 
-            ActionQueue.Add(() =>
-            {
-                attacker.Selected = true;
-                RefreshMap();
-            });
-
-            List<Country> targets = attacker.Neighbours.Where(c => c.Player != p).ToList();
-            Country target = targets[Random.Next(targets.Count)];
-
-            ActionQueue.Add(() =>
-            {
-                target.Selected = true;
-                RefreshMap();
-            });
-
-            Attack(attacker, target);
-
-            Player next;
-            do
-            {
-                currentPlayer = (currentPlayer + 1) % Players.Count;
-                next = Players[currentPlayer];
-            } while (next.Alive);
+            ActionQueue.Add(() => p.DoTurn(this));
         }
 
         private void OnStartTurn(Player p)
@@ -234,15 +230,6 @@ namespace Conquest.Model
             {
                 ActionQueue.Add(() => DistributeArmy(p.Countries[Random.Next(p.Countries.Count)]));
             }
-        }
-
-        private bool HasEnemyNeighbours(Country c)
-        {
-            foreach(Country n in c.Neighbours)
-            {
-                if (n.Player == null || n.Player != c.Player) return true;
-            }
-            return false;
         }
 
         private void RefreshMap()
@@ -464,11 +451,11 @@ namespace Conquest.Model
 
         public void StartGame(int numPlayers, int numCountries, int numArmy)
         {
-            if (State == GameState.Started || State == GameState.Initializing) return;
+            if (State != GameState.Idle && State != GameState.Playing) return;
             ResetGame();
             for (int i = 0; i < numPlayers; i++)
             {
-                Players.Add(new Player(RandomColor(Players.Select(p => p.PrimaryColor).ToArray())));
+                Players.Add(new Player(Players.Count, RandomColor(Players.Select(p => p.PrimaryColor).ToArray())));
             }
 
             List<int> countryIds = new List<int>();
@@ -490,6 +477,7 @@ namespace Conquest.Model
                 } 
             }
             SetState(GameState.Playing);
+            UIManager.SetupPlayerOrderGrid(Players, currentPlayer);
         }
 
         private bool CoordinatesOnMap(int x, int y)

@@ -16,6 +16,11 @@ namespace Conquest.PlayerClasses
         public List<Country> Countries;
         public List<Continent> Continents;
 
+        public bool Alive
+        {
+            get { return Countries.Count > 0; }
+        }
+
         public Player(Color primary)
         {
             PrimaryColor = primary;

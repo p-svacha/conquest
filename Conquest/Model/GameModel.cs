@@ -23,8 +23,13 @@ namespace Conquest.Model
             Started,
             Initializing,
             Idle,
-            Playing
+            Playing,
+            InTurn
         }
+
+        private const int FPS_DEFAULT = 60;
+        private const double FPS_IN_TURN = 2;
+        private DateTime lastTurnUpdate;
 
         private const int SELECTED_WIDTH = 4;
 
@@ -49,7 +54,7 @@ namespace Conquest.Model
         private int currentPlayer;
 
         private GameState State;
-        private DispatcherTimer ticks = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1 / 60) };
+        private DispatcherTimer ticks = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1 / FPS_DEFAULT) };
         private List<Action> ActionQueue;
 
         public GameModel(MainWindow main, UIManager uiManager)
@@ -103,6 +108,20 @@ namespace Conquest.Model
                         action.Invoke();
                     }
                     break;
+
+                case GameState.InTurn:
+                    if (ActionQueue.Count > 0) 
+                    {
+                        if ((DateTime.Now - lastTurnUpdate).Milliseconds > 1 / FPS_IN_TURN * 1000) {
+                            Action action = ActionQueue[0];
+                            ActionQueue.Remove(action);
+                            action.Invoke();
+                            lastTurnUpdate = DateTime.Now;
+                        }
+                    }
+                    else SetState(GameState.Playing);
+                    break;
+
             }
         }
 
@@ -136,7 +155,6 @@ namespace Conquest.Model
                         TakeCountry(defender, attacker.Player);
                         MoveArmy(attacker, defender, attacker.Army / 2);
                         RefreshMap();
-                        Thread.Sleep(1000);
                     });
                 }
                 else if (attacker.Army == 0) {
@@ -145,7 +163,6 @@ namespace Conquest.Model
                         attacker.Selected = false;
                         defender.Selected = false;
                         RefreshMap();
-                        Thread.Sleep(1000);
                     });
                 }
                 else if (attacker.Army > 0 && defender.Army > 0)
@@ -153,10 +170,16 @@ namespace Conquest.Model
                     if (Random.Next(2) == 0) attacker.Army--;
                     else defender.Army--;
                     RefreshMap();
-                    Thread.Sleep(500);
                     Attack(attacker, defender);
                 }
             });
+
+            if (Players.Where(p => p.Alive).Count() == 1)
+            {
+                Player winner = Players.Where(p => p.Alive).First();
+                Console.WriteLine("{0} won the game!", winner.PrimaryColor);
+                SetState(GameState.Idle);
+            }
         }
 
         private void MoveArmy(Country source, Country target, int amount)
@@ -170,6 +193,8 @@ namespace Conquest.Model
 
         public void NextTurn()
         {
+            if (State != GameState.Playing) return;
+            SetState(GameState.InTurn);
             Player p = Players[currentPlayer];
             OnStartTurn(p);
             Country attacker;
@@ -182,7 +207,6 @@ namespace Conquest.Model
             {
                 attacker.Selected = true;
                 RefreshMap();
-                Thread.Sleep(1000);
             });
 
             List<Country> targets = attacker.Neighbours.Where(c => c.Player != p).ToList();
@@ -192,11 +216,16 @@ namespace Conquest.Model
             {
                 target.Selected = true;
                 RefreshMap();
-                Thread.Sleep(1000);
             });
 
             Attack(attacker, target);
-            currentPlayer = (currentPlayer + 1) % Players.Count;
+
+            Player next;
+            do
+            {
+                currentPlayer = (currentPlayer + 1) % Players.Count;
+                next = Players[currentPlayer];
+            } while (next.Alive);
         }
 
         private void OnStartTurn(Player p)

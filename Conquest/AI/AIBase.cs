@@ -13,6 +13,8 @@ namespace Conquest.AI
     {
         protected Random Random = new Random();
         protected Player Player;
+        public abstract void StartTurn(GameModel model);
         public abstract void NextTurn(GameModel model);
+        public abstract void EndTurn(GameModel model);
     }
 }

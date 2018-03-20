@@ -18,13 +18,19 @@ namespace Conquest.UI
         private Label NearestBorderLabel;
         private Grid PlayerOrder;
         private Grid InfoPanel;
+        private Grid GraphCountries;
+        private Grid GraphArmy;
+        private Grid GraphDensity;
 
-        public UIManager(Grid infoPanel, Label coordinatesLabel, Label nearestBorderLabel, Grid playerOrder)
+        public UIManager(Grid infoPanel, Label coordinatesLabel, Label nearestBorderLabel, Grid playerOrder, Grid graphCountries, Grid graphArmy, Grid graphDensity)
         {
             CoordinatesLabel = coordinatesLabel;
             NearestBorderLabel = nearestBorderLabel;
             InfoPanel = infoPanel;
             PlayerOrder = playerOrder;
+            GraphCountries = graphCountries;
+            GraphArmy = graphArmy;
+            GraphDensity = graphDensity;
         }
 
         public void SetCountryInfo(Country c)
@@ -93,32 +99,93 @@ namespace Conquest.UI
             InfoPanel.RowDefinitions.Add(new RowDefinition());
         }
 
+        public void RefreshGraphs(List<Player> players)
+        {
+            GraphCountries.Children.Clear();
+            GraphCountries.ColumnDefinitions.Clear();
+            GraphArmy.Children.Clear();
+            GraphArmy.ColumnDefinitions.Clear();
+            GraphDensity.Children.Clear();
+            GraphDensity.ColumnDefinitions.Clear();
+            for (int i = 0; i < players.Where(p => p.Alive).Count(); i++)
+            {
+                List<Player> orderedByCountries = players.Where(p => p.Alive).OrderByDescending(p => p.Countries.Count).ToList();
+                GraphCountries.ColumnDefinitions.Add(new ColumnDefinition()
+                {
+                    Width = new GridLength(orderedByCountries[i].Countries.Count, GridUnitType.Star)
+                });
+
+                Rectangle rectCountries = new Rectangle()
+                {
+                    Fill = new SolidColorBrush(orderedByCountries[i].PrimaryColor),
+                    IsHitTestVisible = false,
+                };
+                Label txtCountries = new Label()
+                {
+                    Content = orderedByCountries[i].Countries.Count,
+                    Foreground = new SolidColorBrush(orderedByCountries[i].SecondaryColor)
+                };
+                rectCountries.SetValue(Grid.ColumnProperty, i);
+                txtCountries.SetValue(Grid.ColumnProperty, i);
+                GraphCountries.Children.Add(rectCountries);
+                GraphCountries.Children.Add(txtCountries);
+
+                List<Player> orderedByArmy = players.Where(p => p.Alive).OrderByDescending(p => p.Countries.Sum(c => c.Army)).ToList();
+                GraphArmy.ColumnDefinitions.Add(new ColumnDefinition()
+                {
+                    Width = new GridLength(orderedByArmy[i].Countries.Sum(c => c.Army), GridUnitType.Star)
+                });
+                Rectangle rectArmy = new Rectangle()
+                {
+                    Fill = new SolidColorBrush(orderedByArmy[i].PrimaryColor),
+                    IsHitTestVisible = false,
+                };
+                Label txtArmy = new Label()
+                {
+                    Content = orderedByArmy[i].Countries.Sum(c => c.Army),
+                    Foreground = new SolidColorBrush(orderedByArmy.ToList()[i].SecondaryColor)
+                };
+                rectArmy.SetValue(Grid.ColumnProperty, i);
+                txtArmy.SetValue(Grid.ColumnProperty, i);
+                GraphArmy.Children.Add(rectArmy);
+                GraphArmy.Children.Add(txtArmy);
+            }
+        }
+
         public void SetupPlayerOrderGrid(List<Player> players, int currentPlayer)
         {
             PlayerOrder.Children.Clear();
             PlayerOrder.ColumnDefinitions.Clear();
             PlayerOrder.RowDefinitions.Clear();
             PlayerOrder.RowDefinitions.Add(new RowDefinition());
-            for (int i = 0; i < players.Count; i++)
+            for (int i = 0; i < players.Where(p => p.Alive).Count(); i++)
             {
                 PlayerOrder.ColumnDefinitions.Add(new ColumnDefinition()
                 {
                     Width = new GridLength(1, GridUnitType.Star)
                 });
-                TextBlock txt = new TextBlock()
-                {
-                    Text = "."
-                };
-                txt.SetValue(Grid.ColumnProperty, 0);
-                txt.SetValue(Grid.RowProperty, 0);
                 Rectangle rect = new Rectangle()
                 {
-                    Fill = new SolidColorBrush(players[i].PrimaryColor),
+                    Fill = new SolidColorBrush(players.Where(p => p.Alive).ToList()[i].PrimaryColor),
                     IsHitTestVisible = false,
                 };
                 rect.SetValue(Grid.ColumnProperty, i);
                 rect.SetValue(Grid.RowProperty, 0);
                 PlayerOrder.Children.Add(rect);
+
+                if (currentPlayer == players.Where(p => p.Alive).ToList()[i].Id)
+                {
+                    Rectangle selectRect = new Rectangle()
+                    {
+                        Stroke = new SolidColorBrush(players.Where(p => p.Alive).ToList()[i].SecondaryColor),
+                        IsHitTestVisible = false,
+                        Height = PlayerOrder.Height,
+                        StrokeThickness = 4
+                    };
+                    selectRect.SetValue(Grid.ColumnProperty, i);
+                    selectRect.SetValue(Grid.RowProperty, 0);
+                    PlayerOrder.Children.Add(selectRect);
+                }
 
                 Rectangle borderRect = new Rectangle()
                 {
@@ -130,33 +197,6 @@ namespace Conquest.UI
                 borderRect.SetValue(Grid.ColumnProperty, i);
                 borderRect.SetValue(Grid.RowProperty, 0);
                 PlayerOrder.Children.Add(borderRect);
-
-                if (currentPlayer == i)
-                {
-                    Rectangle selectRect = new Rectangle()
-                    {
-                        Stroke = new SolidColorBrush(players[i].SecondaryColor),
-                        IsHitTestVisible = false,
-                        Height = PlayerOrder.Height,
-                        StrokeThickness = 4
-                    };
-                    selectRect.SetValue(Grid.ColumnProperty, i);
-                    selectRect.SetValue(Grid.RowProperty, 0);
-                    PlayerOrder.Children.Add(selectRect);
-                }
-                if(!players[i].Alive)
-                {
-                    Rectangle deadRect = new Rectangle()
-                    {
-                        Stroke = new SolidColorBrush(Color.FromArgb(255, 255, 0, 0)),
-                        IsHitTestVisible = false,
-                        Height = PlayerOrder.Height,
-                        StrokeThickness = 6
-                    };
-                    deadRect.SetValue(Grid.ColumnProperty, i);
-                    deadRect.SetValue(Grid.RowProperty, 0);
-                    PlayerOrder.Children.Add(deadRect);
-                }
             }
         }
     }

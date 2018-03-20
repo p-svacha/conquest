@@ -15,11 +15,13 @@ namespace Conquest.MapClasses
     {
         private byte[] Pixels;
         private int Stride;
+        private BitmapImage OriginalImage;
         private WriteableBitmap writeableBitmap;
         private Image image;
 
         public void SetMap(BitmapImage bitmapImage)
         {
+            OriginalImage = bitmapImage;
             Stride = bitmapImage.PixelWidth * 4;
             int size = bitmapImage.PixelHeight * Stride;
             Pixels = new byte[size];

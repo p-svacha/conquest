@@ -16,7 +16,7 @@ namespace Conquest
         public MainWindow()
         {
             InitializeComponent();
-            UIManager UIManager = new UIManager(InfoPanel, CoordinatesLabel, NearestBorderLabel, PlayerOrder);
+            UIManager UIManager = new UIManager(InfoPanel, CoordinatesLabel, NearestBorderLabel, PlayerOrder, GraphNumCountry, GraphArmy, GraphDensity);
             Model = new GameModel(this, UIManager);
             
             BitmapImage bitImg = new BitmapImage(new Uri("../../Resources/Maps/test4.png", UriKind.Relative));

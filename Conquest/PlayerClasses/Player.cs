@@ -35,9 +35,17 @@ namespace Conquest.PlayerClasses
             AI = new AI_FullRandom(this);
         }
 
+        public void StartTurn(GameModel model)
+        {
+            AI.StartTurn(model);
+        }
         public void DoTurn(GameModel model)
         {
             AI.NextTurn(model);
+        }
+        public void EndTurn(GameModel model)
+        {
+            AI.EndTurn(model);
         }
     }
 }

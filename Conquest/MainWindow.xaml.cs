@@ -19,7 +19,7 @@ namespace Conquest
             UIManager UIManager = new UIManager(InfoPanel, CoordinatesLabel, NearestBorderLabel, PlayerOrder, GraphNumCountry, GraphArmy, GraphDensity);
             Model = new GameModel(this, UIManager);
             
-            BitmapImage bitImg = new BitmapImage(new Uri("../../Resources/Maps/test4.png", UriKind.Relative));
+            BitmapImage bitImg = new BitmapImage(new Uri("../../Resources/Maps/test5.png", UriKind.Relative));
             MapColumn.Width = new GridLength(bitImg.PixelWidth);
             bitImg.CreateOptions = BitmapCreateOptions.None;
             Model.SetMap(bitImg);

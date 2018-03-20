@@ -15,7 +15,7 @@
             </Grid.ColumnDefinitions>
 
             <DockPanel Grid.Column="0" Name="MapPanel"/>
-            <StackPanel Name="Sidebar" Grid.Column="1" Width="300">
+            <StackPanel Name="Sidebar" Grid.Column="1" Width="300" Margin="20 0 0 0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>

@@ -1,6 +1,7 @@
 ﻿using Conquest.Model;
 using Conquest.UI;
 using System;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -19,7 +20,7 @@ namespace Conquest
             UIManager UIManager = new UIManager(InfoPanel, CoordinatesLabel, NearestBorderLabel, PlayerOrder, GraphNumCountry, GraphArmy, GraphDensity);
             Model = new GameModel(this, UIManager);
             
-            BitmapImage bitImg = new BitmapImage(new Uri("../../Resources/Maps/test5.png", UriKind.Relative));
+            BitmapImage bitImg = new BitmapImage(new Uri("../../Resources/Maps/test4.png", UriKind.Relative));
             MapColumn.Width = new GridLength(bitImg.PixelWidth);
             bitImg.CreateOptions = BitmapCreateOptions.None;
             Model.SetMap(bitImg);
@@ -28,6 +29,17 @@ namespace Conquest
 
             MouseMove += new MouseEventHandler(MainWindowMouseMoved);
             MouseDown += new MouseButtonEventHandler(MainWindowMouseDown);
+
+            new Thread(() =>
+            {
+                while (true)
+                {
+                    this.Dispatcher.Invoke(() =>
+                    {
+                        Model.Update();
+                    });
+                }
+            }).Start();
         }
 
         private void MainWindowMouseMoved(object sender, MouseEventArgs e)

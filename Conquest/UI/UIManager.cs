@@ -62,7 +62,7 @@ namespace Conquest.UI
             CoordinatesLabel.Content = x + " / " + y;
         }
 
-        public void SetNearestBorder(int d)
+        public void SetNearestBorder(float d)
         {
             NearestBorderLabel.Content = d;
         }

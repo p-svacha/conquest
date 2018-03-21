@@ -21,7 +21,9 @@ namespace Conquest.Model
         enum GameState
         {
             Started,
-            Initializing,
+            Initializing_FindCountries,
+            Initializing_FindNeighbours,
+            Initializing_FindDistancesToNearestBorder,
             ReadyToPlay,
             Playing_Idle,
             Playing_DistrubutionPhase,
@@ -29,9 +31,8 @@ namespace Conquest.Model
             Playing_MovePhase
         }
 
-        private const int FPS_DEFAULT = 60;
-        private const double IN_TURN_UPDATE = 200; //ms
-        private DateTime lastTurnUpdate;
+        private const int FPS_DEFAULT = 400;
+        private const int IN_TURN_UPDATE = 200; //ms
 
         private const int SELECTED_WIDTH = 4;
 
@@ -39,7 +40,9 @@ namespace Conquest.Model
         private const int BORDER = -2;
         private const int OCEAN = -3;
         private const int STARTVALUE = -99;
-        private List<Point> CompletedPoints = new List<Point>();
+        private bool[,] CompletedPoints;
+        private int initX = 0;
+        private int initY = 0;
 
         private MainWindow MainWindow;
         private UIManager UIManager;
@@ -47,7 +50,7 @@ namespace Conquest.Model
         public List<Country> Countries;
         public List<Continent> Continents;
         private int[,] CountryMap;
-        private int[,] DistanceToNearestBorder;
+        private float[,] DistanceToNearestBorder;
         private Map Map;
         private static Random Random;
         public static Color White;
@@ -56,8 +59,9 @@ namespace Conquest.Model
         private int currentPlayer;
 
         private GameState State;
-        private DispatcherTimer ticks = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1 / FPS_DEFAULT) };
         private List<Action> ActionQueue;
+        private List<Action> FindNeighboursQueue;
+        private DateTime NextActionInvoke;
 
         public GameModel(MainWindow main, UIManager uiManager)
         {
@@ -71,58 +75,67 @@ namespace Conquest.Model
             Countries = new List<Country>();
             Continents = new List<Continent>();
             ActionQueue = new List<Action>();
+            FindNeighboursQueue = new List<Action>();
             Map = new Map();
-            ticks.Tick += new EventHandler(Update);
-            ticks.Start();
         }
 
-        private void Update(object sender, EventArgs e)
+        public void Update()
         {
             switch(State)
             {
                 case GameState.Started:
                     Initialize();
-                    SetState(GameState.Initializing);
                     break;
 
-                case GameState.Initializing:
-                    for (int i = 0; i < 20; i++)
-                    {
-                        Action action = ActionQueue[0];
-                        ActionQueue.Remove(action);
-                        action.Invoke();
-                        if (ActionQueue.Count == 0)
+                case GameState.Initializing_FindCountries:
+                    if (!InvokeAction()) {
+                        if (initX == Map.Width - 1 && initY == Map.Height - 1)
                         {
-                            FindBorders();
-                            SetCenters();
-                            SetState(GameState.ReadyToPlay);
-                            break;
+                            ActionQueue.AddRange(FindNeighboursQueue);
+                            SetState(GameState.Initializing_FindNeighbours);
                         }
+                        else
+                        {
+                            do
+                            {
+                                if (initX == Map.Width - 1)
+                                {
+                                    initX = 0;
+                                    initY++;
+                                }
+                                else initX++;
+                            } while (!(initX == Map.Width - 1 && initY == Map.Height - 1) && CompletedPoints[initX, initY]);
+                            if (!(initX == Map.Width - 1 && initY == Map.Height - 1))
+                                ActionQueue.Insert(0, () => FloodFill(true, initX, initY, STARTVALUE));
+                        }
+                    }
+                    break;
+
+                case GameState.Initializing_FindNeighbours:
+                    if(!InvokeAction())
+                    {
+                        ActionQueue.Add(() => FindDistancesToNearestBorder(true));
+                        FindNeighboursQueue.Clear();
+                        SetState(GameState.Initializing_FindDistancesToNearestBorder);
+                    }
+                    break;
+
+                case GameState.Initializing_FindDistancesToNearestBorder:
+                    if(!InvokeAction())
+                    {
+                        SetSelectedBorders();
+                        SetCenters();
+                        SetState(GameState.ReadyToPlay);
                     }
                     break;
 
                 case GameState.ReadyToPlay:
                 case GameState.Playing_Idle:
-                    if (ActionQueue.Count > 0)
-                    {
-                        Action action = ActionQueue[0];
-                        ActionQueue.Remove(action);
-                        action.Invoke();
-                    }
+                    InvokeAction(IN_TURN_UPDATE);
                     break;
 
                 case GameState.Playing_DistrubutionPhase:
-                    if (ActionQueue.Count > 0)
-                    {
-                        if ((DateTime.Now - lastTurnUpdate).Milliseconds > IN_TURN_UPDATE)
-                        {
-                            Action action = ActionQueue[0];
-                            ActionQueue.Remove(action);
-                            action.Invoke();
-                            lastTurnUpdate = DateTime.Now;
-                        }
-                    }
-                    else
+                    if (!InvokeAction(IN_TURN_UPDATE))
                     {
                         ActionQueue.Add(() => Players[currentPlayer].DoTurn(this));
                         SetState(GameState.Playing_AttackPhase);
@@ -130,23 +143,7 @@ namespace Conquest.Model
                     break;
 
                 case GameState.Playing_AttackPhase:
-                    if (ActionQueue.Count > 0)
-                    {
-                        if ((DateTime.Now - lastTurnUpdate).Milliseconds > IN_TURN_UPDATE)
-                        {
-                            Action action = ActionQueue[0];
-                            ActionQueue.Remove(action);
-                            action.Invoke();
-                            lastTurnUpdate = DateTime.Now;
-                            if (Players.Where(p => p.Alive).Count() == 1)
-                            {
-                                Player winner = Players.Where(p => p.Alive).First();
-                                Console.WriteLine("{0} won the game!", winner.PrimaryColor);
-                                SetState(GameState.ReadyToPlay);
-                            }
-                        }
-                    }
-                    else
+                    if (!InvokeAction(IN_TURN_UPDATE))
                     {
                         ActionQueue.Add(() => Players[currentPlayer].EndTurn(this));
                         SetState(GameState.Playing_MovePhase);
@@ -154,17 +151,7 @@ namespace Conquest.Model
                     break;
 
                 case GameState.Playing_MovePhase:
-                    if (ActionQueue.Count > 0)
-                    {
-                        if ((DateTime.Now - lastTurnUpdate).Milliseconds > IN_TURN_UPDATE)
-                        {
-                            Action action = ActionQueue[0];
-                            ActionQueue.Remove(action);
-                            action.Invoke();
-                            lastTurnUpdate = DateTime.Now;
-                        }
-                    }
-                    else
+                    if (!InvokeAction(IN_TURN_UPDATE))
                     {
                         Player next;
                         do
@@ -179,91 +166,31 @@ namespace Conquest.Model
             }
         }
 
-        //----------------------------GAME COMMANDS----------------------------------
-        public void TakeCountry(Country c, Player p)
+        int numActions = 0;
+        DateTime lastAction = DateTime.Now;
+        /// <summary>
+        /// Invokes the next action in the action queue. Returns false if the queue is empty.
+        /// </summary>
+        private bool InvokeAction(int waitAfterAction = 0)
         {
-            ActionQueue.Add(() =>
+            if (ActionQueue.Count == 0) return false;
+            if (DateTime.Now > NextActionInvoke)
             {
-                if (c.Player != null)
+                numActions++;
+                if((DateTime.Now - lastAction).TotalMilliseconds > 1000)
                 {
-                    c.Player.Countries.Remove(c);
+                    Console.WriteLine("{0} actions / sec", numActions);
+                    numActions = 0;
+                    lastAction = DateTime.Now;
                 }
-                c.Player = p;
-                p.Countries.Add(c);
-                RefreshMap();
-            });
-        }
-
-        public void DistributeArmy(Country c)
-        {
-            ActionQueue.Add(() =>
-            {
-                c.Army++;
-                RefreshMap();
-            });
-        }
-
-        public void Attack(Country attacker, Country defender)
-        {
-            if (!attacker.Selected)
-            {
-                ActionQueue.Add(() =>
-                {
-                    attacker.Selected = true;
-                    RefreshMap();
-                });
+                Action action = ActionQueue[0];
+                ActionQueue.Remove(action);
+                action.Invoke();
+                NextActionInvoke = DateTime.Now + TimeSpan.FromMilliseconds(waitAfterAction);
+                if(waitAfterAction > 0) RefreshMap();
+                CheckGameOver();
             }
-            if (!defender.Selected)
-            {
-                ActionQueue.Add(() =>
-                {
-                    defender.Selected = true;
-                    RefreshMap();
-                });
-            }
-            ActionQueue.Add(() =>
-            {
-                if (defender.Army == 0) {
-                    attacker.Selected = false;
-                    defender.Selected = false;
-                    if (defender.Player != null && defender.Player.Countries.Count == 1)
-                        Console.WriteLine("{0} died!", defender.Player.PrimaryColor);
-                    TakeCountry(defender, attacker.Player);
-                    MoveArmy(attacker, defender, attacker.Army / 2);
-                }
-                else if (attacker.Army == 0) {
-                    attacker.Selected = false;
-                    defender.Selected = false;
-                    RefreshMap();
-                }
-                else if (attacker.Army > 0 && defender.Army > 0)
-                {
-                    if (Random.Next(2) == 0) attacker.Army--;
-                    else defender.Army--;
-                    RefreshMap();
-                    Attack(attacker, defender);
-                }
-            });
-        }
-
-        private void MoveArmy(Country source, Country target, int amount)
-        {
-            ActionQueue.Add(() =>
-            {
-                source.Army -= amount;
-                target.Army += amount;
-                RefreshMap();
-            });
-        }
-
-        //-----------------------------END GAME COMMANDS-------------------------------------
-
-        public void NextTurn()
-        {
-            if (State != GameState.Playing_Idle) return;
-            SetState(GameState.Playing_DistrubutionPhase);
-
-            ActionQueue.Add(() => Players[currentPlayer].StartTurn(this));
+            return true;
         }
 
         private void RefreshMap()
@@ -280,20 +207,119 @@ namespace Conquest.Model
             });
         }
 
+        private void CheckGameOver()
+        {
+            if (Players.Where(p => p.Alive).Count() == 1)
+            {
+                Player winner = Players.Where(p => p.Alive).First();
+                Console.WriteLine("{0} won the game!", winner.PrimaryColor);
+                SetState(GameState.ReadyToPlay);
+            }
+        }
+
+        //----------------------------GAME COMMANDS----------------------------------
+        public void TakeCountry(Country c, Player p)
+        {
+            ActionQueue.Add(() =>
+            {
+                if (c.Player != null)
+                {
+                    c.Player.Countries.Remove(c);
+                }
+                c.Player = p;
+                p.Countries.Add(c);
+            });
+        }
+
+        public void DistributeArmy(Country c)
+        {
+            ActionQueue.Add(() =>
+            {
+                c.Army++;
+            });
+        }
+
+        public void Attack(Country attacker, Country defender)
+        {
+            if (!attacker.Selected)
+            {
+                ActionQueue.Add(() =>
+                {
+                    attacker.Selected = true;
+                });
+            }
+            if (!defender.Selected)
+            {
+                ActionQueue.Add(() =>
+                {
+                    defender.Selected = true;
+                });
+            }
+            ActionQueue.Add(() =>
+            {
+                if (defender.Army == 0) {
+                    attacker.Selected = false;
+                    defender.Selected = false;
+                    if (defender.Player != null && defender.Player.Countries.Count == 1)
+                        Console.WriteLine("{0} died!", defender.Player.PrimaryColor);
+                    TakeCountry(defender, attacker.Player);
+                    MoveArmy(attacker, defender, attacker.Army / 2);
+                }
+                else if (attacker.Army == 0) {
+                    attacker.Selected = false;
+                    defender.Selected = false;
+                }
+                else if (attacker.Army > 0 && defender.Army > 0)
+                {
+                    if (Random.Next(2) == 0) attacker.Army--;
+                    else defender.Army--;
+                    Attack(attacker, defender);
+                }
+            });
+        }
+
+        private void MoveArmy(Country source, Country target, int amount)
+        {
+            ActionQueue.Add(() =>
+            {
+                source.Army -= amount;
+                target.Army += amount;
+            });
+        }
+
+        //-----------------------------END GAME COMMANDS-------------------------------------
+
+        public void NextTurn()
+        {
+            if (State != GameState.Playing_Idle) return;
+            SetState(GameState.Playing_DistrubutionPhase);
+
+            ActionQueue.Add(() => Players[currentPlayer].StartTurn(this));
+        }
+
         public void SetMap(BitmapImage image)
         {
             Map.SetMap(image);
             Map.RefreshMap();
             CountryMap = new int[Map.Width, Map.Height];
-            DistanceToNearestBorder = new int[Map.Width, Map.Height];
+            CompletedPoints = new bool[Map.Width, Map.Height];
+            DistanceToNearestBorder = new float[Map.Width, Map.Height];
             for (int y = 0; y < Map.Height; y++)
             {
                 for (int x = 0; x < Map.Width; x++)
                 {
                     DistanceToNearestBorder[x, y] = int.MaxValue;
                     if (Map.GetPixel(x, y).Equals(White)) CountryMap[x, y] = UNASSIGNED_COUNTRY;
-                    else if (Map.GetPixel(x, y).Equals(Black)) CountryMap[x, y] = BORDER;
-                    else CountryMap[x, y] = OCEAN;
+                    else if (Map.GetPixel(x, y).Equals(Black))
+                    {
+                        CountryMap[x, y] = BORDER;
+                        CompletedPoints[x, y] = true;
+                    }
+                    else
+                    {
+                        CountryMap[x, y] = OCEAN;
+                        CompletedPoints[x, y] = true;
+                    }
                 }
             }
         }
@@ -301,16 +327,6 @@ namespace Conquest.Model
         public Image GetMapImage()
         {
             return Map.GetMapImage();
-        }
-
-        public Color GetMapPixel(int x, int y)
-        {
-            return Map.GetPixel(x, y);
-        }
-
-        public void SetMapPixel(int x, int y, Color c)
-        {
-            Map.SetPixel(x, y, c);
         }
 
         private void SetState(GameState state)
@@ -322,16 +338,8 @@ namespace Conquest.Model
         //------------------------------------------------------INIT--------------------------------------------------
         private void Initialize()
         {
-            for (int y = 0; y < Map.Height; y++)
-            {
-                for (int x = 0; x < Map.Width; x++)
-                {
-                    int realX = x;
-                    int realY = y;
-                    ActionQueue.Add(() => FloodFill(true, realX, realY, STARTVALUE));
-                }
-            }
-            ActionQueue.Add(() => FindDistancesToNearestBorder());
+            ActionQueue.Add(() => FloodFill(true, 0, 0, STARTVALUE));
+            SetState(GameState.Initializing_FindCountries);
         }
 
         public void FloodFill(bool start, int x, int y, int id)
@@ -341,33 +349,32 @@ namespace Conquest.Model
             else if (CountryMap[x, y] != UNASSIGNED_COUNTRY)
             {
                 stop = true;
-                if(!start) ActionQueue.Add(() => FindNeighbour(x, y, id, 0));
+                if(!start) FindNeighboursQueue.Add(() => FindNeighbour(x, y, id, 0));
             }
             if(!stop) {
                 if (start)
                 {
                     id = Countries.Count();
                     Countries.Add(new Country(id));
-                    CompletedPoints.Clear();
                 }
                 CountryMap[x, y] = id;
                 Countries[id].AreaPixels.Add(new System.Windows.Point(x, y));
-                if (!CompletedPoints.Contains(new Point(x - 1 < 0 ? 0 : x - 1, y))) {
-                    CompletedPoints.Add(new Point(x - 1 < 0 ? 0 : x - 1, y));
+                if (!CompletedPoints[x - 1 < 0 ? 0 : x - 1, y]) {
+                    CompletedPoints[x - 1 < 0 ? 0 : x - 1, y] = true;
                     ActionQueue.Insert(0, () => FloodFill(false, x - 1 < 0 ? 0 : x - 1, y, id));
                 }
-                if (!CompletedPoints.Contains(new Point(x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y))) {
-                    CompletedPoints.Add(new Point(x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y));
+                if (!CompletedPoints[x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y]) {
+                    CompletedPoints[x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y] = true;
                     ActionQueue.Insert(0, () => FloodFill(false, x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y, id));
                 }
-                if (!CompletedPoints.Contains(new Point(x, y - 1 < 0 ? 0 : y - 1)))
+                if (!CompletedPoints[x, y - 1 < 0 ? 0 : y - 1])
                 {
-                    CompletedPoints.Add(new Point(x, y - 1 < 0 ? 0 : y - 1));
+                    CompletedPoints[x, y - 1 < 0 ? 0 : y - 1] = true;
                     ActionQueue.Insert(0, () => FloodFill(false, x, y - 1 < 0 ? 0 : y - 1, id));
                 }
-                if (!CompletedPoints.Contains(new Point(x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1)))
+                if (!CompletedPoints[x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1])
                 {
-                    CompletedPoints.Add(new Point(x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1));
+                    CompletedPoints[x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1] = true;
                     ActionQueue.Insert(0, () => FloodFill(false, x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1, id));
                 }
             }
@@ -388,38 +395,130 @@ namespace Conquest.Model
                 }
                 else if(CountryMap[x, y] == OCEAN)
                 {
-                    
+                    //TODO: Ocean borders
                 }
                 else
                 {
                     Countries[id].AddNeighbour(Countries[CountryMap[x, y]]);
                     Countries[CountryMap[x, y]].AddNeighbour(Countries[id]);
-                    //TODO: Border length
                 }
             }
         }
 
-        private void FindDistancesToNearestBorder()
+        private void FindDistancesToNearestBorder(bool fast)
         {
-            for(int y = 0; y < Map.Height; y++)
+            if (fast)
             {
-                for(int x = 0; x < Map.Width; x++)
                 {
-                    if (x == 0 || x == Map.Width - 1 || y == 0 || y == Map.Height - 1 || Map.GetPixel(x, y).Equals(Black)) Spread(x, y, 0);
+                    for (int y = 0; y < Map.Height - 1; y++)
+                    {
+                        for (int x = 0; x < Map.Width - 1; x++)
+                        {
+                            if (CountryMap[x, y] >= 0)
+                            {
+                                int realX = x;
+                                int realY = y;
+                                ActionQueue.Add(() =>
+                                {
+                                    int range = 15;
+                                    bool borderFound = false;
+                                    int nearX = 0; int nearY = 0;
+                                    float minDistance = int.MaxValue;
+                                    while (!borderFound)
+                                    {
+                                        for (int dy = realY - range; dy < realY + range; dy++)
+                                        {
+                                            for (int dx = realX - range; dx < realX + range; dx++)
+                                            {
+                                                if (dx >= 0 && dx < Map.Width && dy >= 0 && dy < Map.Height)
+                                                {
+                                                    Console.WriteLine("Border for {1}/{2} with {3}/{4} and range {5} with distance of {0}", "rr", realX, realY, dx, dy, range);
+                                                    if (CountryMap[dx, dy] == BORDER)
+                                                    {
+                                                        borderFound = true;
+                                                        float distance = (float)Math.Sqrt(Math.Pow(dx - realX, 2) + Math.Pow(dy - realY, 2));
+                                                        if (distance < minDistance)
+                                                        {
+                                                            minDistance = distance;
+                                                            nearX = dx;
+                                                            nearY = dy;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        range += 15;
+                                    }
+                                    DistanceToNearestBorder[x, y] = minDistance;
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                for (int y = 0; y < Map.Height; y++)
+                {
+                    for (int x = 0; x < Map.Width; x++)
+                    {
+                        if (x == 0 || x == Map.Width - 1 || y == 0 || y == Map.Height - 1 || CountryMap[x, y] == BORDER) Spread(x, y, 0);
+                    }
                 }
             }
         }
 
-        private void Spread(int x, int y, int distance)
+        private void Spread(int x, int y, float distance)
         {
-            DistanceToNearestBorder[x, y] = distance;
-            ActionQueue.Add(() => { if (distance + 1 < DistanceToNearestBorder[x - 1 < 0 ? 0 : x - 1, y]) Spread(x - 1 < 0 ? 0 : x - 1, y, distance + 1); });
-            ActionQueue.Add(() => { if (distance + 1 < DistanceToNearestBorder[x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y]) Spread(x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y, distance + 1); });
-            ActionQueue.Add(() => { if (distance + 1 < DistanceToNearestBorder[x, y - 1 < 0 ? 0 : y - 1]) Spread(x, y - 1 < 0 ? 0 : y - 1, distance + 1); });
-            ActionQueue.Add(() => { if (distance + 1 < DistanceToNearestBorder[x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1]) Spread(x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1, distance + 1); });
+            if (distance + 1 < DistanceToNearestBorder[x - 1 < 0 ? 0 : x - 1, y])
+            {
+                ActionQueue.Add(() => Spread(x - 1 < 0 ? 0 : x - 1, y, distance + 1f));
+                DistanceToNearestBorder[x - 1 < 0 ? 0 : x - 1, y] = distance + 1f;
+            }
+            if (distance + 1 < DistanceToNearestBorder[x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y])
+            {
+                ActionQueue.Add(() => Spread(x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y, distance + 1f));
+                DistanceToNearestBorder[x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y] = distance + 1f;
+            }
+            if (distance + 1 < DistanceToNearestBorder[x, y - 1 < 0 ? 0 : y - 1])
+            {
+                ActionQueue.Add(() => Spread(x, y - 1 < 0 ? 0 : y - 1, distance + 1f));
+                DistanceToNearestBorder[x, y - 1 < 0 ? 0 : y - 1] = distance + 1f;
+            }
+            if (distance + 1 < DistanceToNearestBorder[x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1])
+            {
+                ActionQueue.Add(() => Spread(x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1, distance + 1f));
+                DistanceToNearestBorder[x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1] = distance + 1f;
+            }
+
+            if (distance + 1.414f < DistanceToNearestBorder[x - 1 < 0 ? 0 : x - 1, y - 1 < 0 ? 0 : y - 1])
+            {
+                ActionQueue.Add(() => Spread(x - 1 < 0 ? 0 : x - 1, y - 1 < 0 ? 0 : y - 1, distance + 1.414f));
+                DistanceToNearestBorder[x - 1 < 0 ? 0 : x - 1, y - 1 < 0 ? 0 : y - 1] = distance + 1.414f;
+            }
+
+            if (distance + 1.414f < DistanceToNearestBorder[x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y - 1 < 0 ? 0 : y - 1])
+            {
+                ActionQueue.Add(() => Spread(x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y - 1 < 0 ? 0 : y - 1, distance + 1.414f));
+                DistanceToNearestBorder[x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y - 1 < 0 ? 0 : y - 1] = distance + 1.414f;
+            }
+
+            if (distance + 1.414f < DistanceToNearestBorder[x - 1 < 0 ? 0 : x - 1, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1])
+            {
+                ActionQueue.Add(() => Spread(x - 1 < 0 ? 0 : x - 1, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1, distance + 1.414f));
+                DistanceToNearestBorder[x - 1 < 0 ? 0 : x - 1, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1] = distance + 1.414f;
+            }
+
+            if (distance + 1.414f < DistanceToNearestBorder[x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1])
+            {
+                ActionQueue.Add(() => Spread(x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1, distance + 1.414f));
+                DistanceToNearestBorder[x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1] = distance + 1.414f;
+            }
+
+
         }
 
-        private void FindBorders()
+        private void SetSelectedBorders()
         {
             foreach(Country c in Countries)
             {
@@ -435,7 +534,7 @@ namespace Conquest.Model
             foreach(Country c in Countries)
             {
                 Point tempCenter = new Point(-1, -1);
-                int furthestDistance = -1;
+                float furthestDistance = -1;
                 foreach(Point p in c.AreaPixels)
                 {
                     if (DistanceToNearestBorder[(int)p.X, (int)p.Y] > furthestDistance)

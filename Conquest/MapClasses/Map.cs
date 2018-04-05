@@ -19,6 +19,9 @@ namespace Conquest.MapClasses
         private WriteableBitmap writeableBitmap;
         private Image image;
 
+        public int[,] CountryMap;
+        public float[,] DistanceToNearestBorder;
+
         public void SetMap(BitmapImage bitmapImage)
         {
             OriginalImage = bitmapImage;

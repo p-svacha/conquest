@@ -1,4 +1,5 @@
-﻿using Conquest.Model;
+﻿using Conquest.MapGeneration;
+using Conquest.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +22,16 @@ namespace Conquest.MapClasses
 
         public int[,] CountryMap;
         public float[,] DistanceToNearestBorder;
+        public bool[,] CompletedPoints;
+
+        public static Color White;
+        public static Color Black;
+
+        public Map()
+        {
+            White = Color.FromArgb(255, 255, 255, 255);
+            Black = Color.FromArgb(255, 0, 0, 0);
+        }
 
         public void SetMap(BitmapImage bitmapImage)
         {
@@ -37,11 +48,42 @@ namespace Conquest.MapClasses
             image.Stretch = Stretch.None;
             image.HorizontalAlignment = HorizontalAlignment.Center;
             image.VerticalAlignment = VerticalAlignment.Center;
+
+            DistanceToNearestBorder = new float[Width, Height];
+            CountryMap = new int[Width, Height];
+            CompletedPoints = new bool[Width, Height];
+        }
+
+        public void Init()
+        {
+            for (int y = 0; y < Height; y++)
+            {
+                for (int x = 0; x < Width; x++)
+                {
+                    DistanceToNearestBorder[x, y] = int.MaxValue;
+                    if (GetPixel(x, y).Equals(White)) CountryMap[x, y] = MapPixelType.UNASSIGNED_COUNTRY;
+                    else if (GetPixel(x, y).Equals(Black))
+                    {
+                        CountryMap[x, y] = MapPixelType.BORDER;
+                    }
+                    else
+                    {
+                        CountryMap[x, y] = MapPixelType.OCEAN;
+                        CompletedPoints[x, y] = true;
+                    }
+                }
+            }
+            RefreshMap();
         }
 
         public Image GetMapImage()
         {
             return image;
+        }
+
+        public BitmapImage GetBitmapImage()
+        {
+            return OriginalImage;
         }
 
         public void RefreshMap()
@@ -102,7 +144,7 @@ namespace Conquest.MapClasses
             {
                 foreach (Point p in country.AreaPixels)
                 {
-                    Color color = country.Player == null ? GameModel.White : country.Player.PrimaryColor;
+                    Color color = country.Player == null ? White : country.Player.PrimaryColor;
                     int pBackBuffer = (int)writeableBitmap.BackBuffer;
                     pBackBuffer += (int)p.Y * writeableBitmap.BackBufferStride;
                     pBackBuffer += (int)p.X * 4;
@@ -116,7 +158,7 @@ namespace Conquest.MapClasses
                 {
                     foreach (Point p in country.BorderPixels)
                     {
-                        Color color = country.Player == null ? GameModel.Black : country.Player.SecondaryColor;
+                        Color color = country.Player == null ? Black : country.Player.SecondaryColor;
                         int pBackBuffer = (int)writeableBitmap.BackBuffer;
                         pBackBuffer += (int)p.Y * writeableBitmap.BackBufferStride;
                         pBackBuffer += (int)p.X * 4;
@@ -134,7 +176,7 @@ namespace Conquest.MapClasses
         {
             if (c.Army > 0)
             {
-                Color color = c.Player == null ? GameModel.White : c.Player.SecondaryColor;
+                Color color = c.Player == null ? White : c.Player.SecondaryColor;
 
                 int posX = ((int)c.Center.X);
                 int posY = ((int)c.Center.Y);

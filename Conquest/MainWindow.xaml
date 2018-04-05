@@ -10,7 +10,7 @@
     <Border Name="MainBorder" Padding="10">
         <Grid Margin="0 20 0 0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Name="MapColumn" Width="1200"/>
+                <ColumnDefinition Name="MapColumn" Width="Auto"/>
                 <ColumnDefinition Name="SidebarColumn" Width="300*"/>
             </Grid.ColumnDefinitions>
 

@@ -14,6 +14,7 @@ namespace Conquest.UI
 {
     class UIManager
     {
+        private DockPanel MapPanel;
         private Label CoordinatesLabel;
         private Label NearestBorderLabel;
         private Grid PlayerOrder;
@@ -22,15 +23,21 @@ namespace Conquest.UI
         private Grid GraphArmy;
         private Grid GraphDensity;
 
-        public UIManager(Grid infoPanel, Label coordinatesLabel, Label nearestBorderLabel, Grid playerOrder, Grid graphCountries, Grid graphArmy, Grid graphDensity)
+        public UIManager(Grid infoPanel, DockPanel mapPanel, Label coordinatesLabel, Label nearestBorderLabel, Grid playerOrder, Grid graphCountries, Grid graphArmy, Grid graphDensity)
         {
             CoordinatesLabel = coordinatesLabel;
             NearestBorderLabel = nearestBorderLabel;
+            MapPanel = mapPanel;
             InfoPanel = infoPanel;
             PlayerOrder = playerOrder;
             GraphCountries = graphCountries;
             GraphArmy = graphArmy;
             GraphDensity = graphDensity;
+        }
+
+        public void Init(int mapWidth)
+        {
+            MapPanel.Width = mapWidth;
         }
 
         public void SetCountryInfo(Country c)

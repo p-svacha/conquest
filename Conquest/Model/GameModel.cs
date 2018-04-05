@@ -21,7 +21,9 @@ namespace Conquest.Model
     {
         enum GameState
         {
-            Started,
+            Null,
+            GeneratingMap,
+            ReadyToInitialize,
             Initializing_FindCountries,
             Initializing_FindNeighbours,
             Initializing_FindDistancesToNearestBorder,
@@ -38,7 +40,6 @@ namespace Conquest.Model
 
         private const int SELECTED_WIDTH = 4;
 
-        private bool[,] CompletedPoints;
         private int initX = 0;
         private int initY = 0;
 
@@ -49,8 +50,6 @@ namespace Conquest.Model
         public List<Continent> Continents;
         private Map Map;
         private static Random Random;
-        public static Color White;
-        public static Color Black;
 
         private int currentPlayer;
 
@@ -59,13 +58,11 @@ namespace Conquest.Model
         private List<Action> FindNeighboursQueue;
         private DateTime NextActionInvoke;
 
-        public GameModel(MainWindow main, UIManager uiManager)
+        public GameModel(MainWindow main, UIManager uiManager, bool generatingMap)
         {
+            State = GameState.Null;
             MainWindow = main;
-            White = Color.FromArgb(255, 255, 255, 255);
-            Black = Color.FromArgb(255, 0, 0, 0);
             UIManager = uiManager;
-            State = GameState.Started;
             Random = new Random();
             Players = new List<Player>();
             Countries = new List<Country>();
@@ -73,13 +70,36 @@ namespace Conquest.Model
             ActionQueue = new List<Action>();
             FindNeighboursQueue = new List<Action>();
             Map = new Map();
+
+            if(generatingMap)
+            {
+                MapGenerator gen = new MapGenerator(400, 400, Map, ActionQueue);
+                ActionQueue.Add(() => gen.GenerateMap());
+                SetState(GameState.GeneratingMap);
+            }
+            else
+            {
+                Map.SetMap(new BitmapImage(new Uri("../../Resources/Maps/test3.png", UriKind.Relative)));
+                Map.Init();
+                UIManager.Init(Map.Width);
+                SetState(GameState.ReadyToInitialize);
+            }
         }
 
         public void Update()
         {
             switch(State)
             {
-                case GameState.Started:
+                case GameState.GeneratingMap:
+                    if(!InvokeAction(200))
+                    {
+                        Map.Init();
+                        UIManager.Init(Map.Width);
+                        SetState(GameState.ReadyToInitialize);
+                    }
+                    break;
+
+                case GameState.ReadyToInitialize:
                     Initialize();
                     break;
 
@@ -100,7 +120,7 @@ namespace Conquest.Model
                                     initY++;
                                 }
                                 else initX++;
-                            } while (!(initX == Map.Width - 1 && initY == Map.Height - 1) && CompletedPoints[initX, initY]);
+                            } while (!(initX == Map.Width - 1 && initY == Map.Height - 1) && Map.CompletedPoints[initX, initY]);
                             if (!(initX == Map.Width - 1 && initY == Map.Height - 1))
                                 ActionQueue.Insert(0, () => FloodFill(true, initX, initY, MapPixelType.STARTVALUE));
                         }
@@ -304,32 +324,6 @@ namespace Conquest.Model
             ActionQueue.Add(() => Players[currentPlayer].StartTurn(this));
         }
 
-        public void SetMap(BitmapImage image)
-        {
-            Map.SetMap(image);
-            Map.RefreshMap();
-            Map.CountryMap = new int[Map.Width, Map.Height];
-            CompletedPoints = new bool[Map.Width, Map.Height];
-            Map.DistanceToNearestBorder = new float[Map.Width, Map.Height];
-            for (int y = 0; y < Map.Height; y++)
-            {
-                for (int x = 0; x < Map.Width; x++)
-                {
-                    Map.DistanceToNearestBorder[x, y] = int.MaxValue;
-                    if (Map.GetPixel(x, y).Equals(White)) Map.CountryMap[x, y] = MapPixelType.UNASSIGNED_COUNTRY;
-                    else if (Map.GetPixel(x, y).Equals(Black))
-                    {
-                        Map.CountryMap[x, y] = MapPixelType.BORDER;
-                    }
-                    else
-                    {
-                        Map.CountryMap[x, y] = MapPixelType.OCEAN;
-                        CompletedPoints[x, y] = true;
-                    }
-                }
-            }
-        }
-
         public Image GetMapImage()
         {
             return Map.GetMapImage();
@@ -366,22 +360,22 @@ namespace Conquest.Model
                 Map.CountryMap[x, y] = id;
                 //Map.SetPixel(x, y, RandomColor());
                 Countries[id].AreaPixels.Add(new System.Windows.Point(x, y));
-                if (!CompletedPoints[x - 1 < 0 ? 0 : x - 1, y]) {
-                    CompletedPoints[x - 1 < 0 ? 0 : x - 1, y] = true;
+                if (!Map.CompletedPoints[x - 1 < 0 ? 0 : x - 1, y]) {
+                    Map.CompletedPoints[x - 1 < 0 ? 0 : x - 1, y] = true;
                     ActionQueue.Insert(0, () => FloodFill(false, x - 1 < 0 ? 0 : x - 1, y, id));
                 }
-                if (!CompletedPoints[x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y]) {
-                    CompletedPoints[x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y] = true;
+                if (!Map.CompletedPoints[x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y]) {
+                    Map.CompletedPoints[x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y] = true;
                     ActionQueue.Insert(0, () => FloodFill(false, x + 1 > Map.Width - 1 ? Map.Width - 1 : x + 1, y, id));
                 }
-                if (!CompletedPoints[x, y - 1 < 0 ? 0 : y - 1])
+                if (!Map.CompletedPoints[x, y - 1 < 0 ? 0 : y - 1])
                 {
-                    CompletedPoints[x, y - 1 < 0 ? 0 : y - 1] = true;
+                    Map.CompletedPoints[x, y - 1 < 0 ? 0 : y - 1] = true;
                     ActionQueue.Insert(0, () => FloodFill(false, x, y - 1 < 0 ? 0 : y - 1, id));
                 }
-                if (!CompletedPoints[x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1])
+                if (!Map.CompletedPoints[x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1])
                 {
-                    CompletedPoints[x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1] = true;
+                    Map.CompletedPoints[x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1] = true;
                     ActionQueue.Insert(0, () => FloodFill(false, x, y + 1 > Map.Height - 1 ? Map.Height - 1 : y + 1, id));
                 }
             }

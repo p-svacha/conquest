@@ -1,4 +1,6 @@
-﻿using Conquest.Model;
+﻿using Conquest.MapGeneration;
+using Conquest.MapClasses;
+using Conquest.Model;
 using Conquest.UI;
 using System;
 using System.Threading;
@@ -17,13 +19,8 @@ namespace Conquest
         public MainWindow()
         {
             InitializeComponent();
-            UIManager UIManager = new UIManager(InfoPanel, CoordinatesLabel, NearestBorderLabel, PlayerOrder, GraphNumCountry, GraphArmy, GraphDensity);
-            Model = new GameModel(this, UIManager);
-            
-            BitmapImage bitImg = new BitmapImage(new Uri("../../Resources/Maps/test3.png", UriKind.Relative));
-            MapColumn.Width = new GridLength(bitImg.PixelWidth);
-            bitImg.CreateOptions = BitmapCreateOptions.None;
-            Model.SetMap(bitImg);
+            UIManager UIManager = new UIManager(InfoPanel, MapPanel, CoordinatesLabel, NearestBorderLabel, PlayerOrder, GraphNumCountry, GraphArmy, GraphDensity);
+            Model = new GameModel(this, UIManager, true);
 
             MapPanel.Children.Add(Model.GetMapImage());
 

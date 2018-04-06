@@ -35,6 +35,8 @@ namespace Conquest.Model
             Playing_MovePhase
         }
 
+        private const int COUNTRY_MIN_SIZE = 300;
+
         private const int FPS_DEFAULT = 400;
         private const int IN_TURN_UPDATE = 200; //ms
 
@@ -51,6 +53,7 @@ namespace Conquest.Model
         private Map Map;
         private static Random Random;
 
+        private Dictionary<int, int> IdReplacements;
         private int currentPlayer;
 
         private GameState State;
@@ -60,6 +63,7 @@ namespace Conquest.Model
 
         public GameModel(MainWindow main, UIManager uiManager, bool generatingMap)
         {
+            IdReplacements = new Dictionary<int, int>();
             State = GameState.Null;
             MainWindow = main;
             UIManager = uiManager;
@@ -73,13 +77,13 @@ namespace Conquest.Model
 
             if(generatingMap)
             {
-                MapGenerator gen = new MapGenerator(400, 400, Map, ActionQueue);
+                MapGenerator gen = new MapGenerator(800, 800, Map, ActionQueue);
                 ActionQueue.Add(() => gen.GenerateMap());
                 SetState(GameState.GeneratingMap);
             }
             else
             {
-                Map.SetMap(new BitmapImage(new Uri("../../Resources/Maps/test3.png", UriKind.Relative)));
+                Map.SetMap(new BitmapImage(new Uri("../../Resources/Maps/test4.png", UriKind.Relative)));
                 Map.Init();
                 UIManager.Init(Map.Width);
                 SetState(GameState.ReadyToInitialize);
@@ -91,8 +95,9 @@ namespace Conquest.Model
             switch(State)
             {
                 case GameState.GeneratingMap:
-                    if(!InvokeAction(200))
+                    if(!InvokeAction())
                     {
+                        Map.SetMap(MapGenerator.ConvertWriteableBitmapToBitmapImage(Map.GetWriteableBitmap()));
                         Map.Init();
                         UIManager.Init(Map.Width);
                         SetState(GameState.ReadyToInitialize);
@@ -107,6 +112,7 @@ namespace Conquest.Model
                     if (!InvokeAction()) {
                         if (initX == Map.Width - 1 && initY == Map.Height - 1)
                         {
+                            RemoveSmallCountries();
                             ActionQueue.AddRange(FindNeighboursQueue);
                             SetState(GameState.Initializing_FindNeighbours);
                         }
@@ -348,17 +354,17 @@ namespace Conquest.Model
             if (Map.CountryMap[x, y] == id) stop = true;
             else if (Map.CountryMap[x, y] != MapPixelType.UNASSIGNED_COUNTRY)
             {
-                stop = true;;
+                stop = true;
                 if(!start) FindNeighboursQueue.Add(() => FindNeighbour(x, y, id, 0));
             }
             if(!stop) {
                 if (start)
                 {
                     id = Countries.Count();
-                    Countries.Add(new Country(id));
+                    Countries.Add(new Country(id, RandomColor()));
                 }
                 Map.CountryMap[x, y] = id;
-                //Map.SetPixel(x, y, RandomColor());
+                Map.SetPixel(x, y, Countries[id].Color);
                 Countries[id].AreaPixels.Add(new System.Windows.Point(x, y));
                 if (!Map.CompletedPoints[x - 1 < 0 ? 0 : x - 1, y]) {
                     Map.CompletedPoints[x - 1 < 0 ? 0 : x - 1, y] = true;
@@ -381,8 +387,41 @@ namespace Conquest.Model
             }
         }
 
+        private void RemoveSmallCountries()
+        {
+            foreach(Country c in Countries)
+            {
+                if (c.AreaPixels.Count < COUNTRY_MIN_SIZE)
+                {
+                    Map.DrawCountry(c, true);
+                }
+                else Map.DrawCountry(c);
+            }
+            Countries = Countries.Where(c => c.AreaPixels.Count > COUNTRY_MIN_SIZE).ToList();
+            for (int i = 0; i < Countries.Count; i++)
+            {
+                IdReplacements.Add(Countries[i].Id, i);
+                Countries[i].Id = i;
+            }
+            for(int y = 0; y < Map.Height; y++)
+            {
+                for(int x = 0; x < Map.Width; x++)
+                {
+                    if (IdReplacements.ContainsKey(Map.CountryMap[x, y])) Map.CountryMap[x, y] = IdReplacements[Map.CountryMap[x, y]];
+                    else if(Map.CountryMap[x,y] >= 0) Map.CountryMap[x, y] = MapPixelType.OCEAN;
+                }
+            }
+            Map.SetMap(MapGenerator.ConvertWriteableBitmapToBitmapImage(Map.GetWriteableBitmap()), false);
+            RefreshMap();
+        }
+
         private void FindNeighbour(int x, int y, int id, int step)
         {
+            if (step == 0)
+            {
+                if (!IdReplacements.ContainsKey(id)) return;
+                id = IdReplacements[id];
+            }
             bool stop = false;
             if (step > 2 || Map.CountryMap[x, y] == id) stop = true;
             if (!stop)
@@ -444,7 +483,7 @@ namespace Conquest.Model
                 UIManager.SetCoordinates(x, y);
                 UIManager.SetNearestBorder(Map.DistanceToNearestBorder[x, y]);
                 if (Map.CountryMap[x, y] >= 0) UIManager.SetCountryInfo(Countries[Map.CountryMap[x, y]]);
-                else UIManager.SetCountryInfo(new Country(-1));
+                else UIManager.SetCountryInfo(new Country(-1, Map.Black));
             }
         }
 
@@ -461,6 +500,7 @@ namespace Conquest.Model
 
         private void ResetGame()
         {
+            IdReplacements.Clear();
             currentPlayer = 0;
             foreach (Country c in Countries)
             {
@@ -531,6 +571,15 @@ namespace Conquest.Model
                     }
                 }
             }
+            return toReturn;
+        }
+
+        public static Color RandomOceanColor()
+        {
+            Color toReturn;
+            byte[] colorData = new byte[3];
+            Random.NextBytes(colorData);
+            toReturn = Color.FromArgb(255, (byte)(colorData[0] / 8), (byte)((colorData[2]+200)/2), (byte)(colorData[1] + 128 > 255 ? 255 : colorData[1] + 128));
             return toReturn;
         }
     }

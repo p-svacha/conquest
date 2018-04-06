@@ -13,8 +13,12 @@ namespace Conquest.MapGeneration
     class MapGenerator
     {
 
-        private const int STARTING_POINTS = 8;
-        private const float SPLIT_CHANCE = 0.02f;
+        private const int SNAP_DISTANCE = 3; //px
+        private const int STARTING_POINT_DENSITY = 10000;  // the lower the denser
+        private const float SPLIT_CHANCE = 0.02f; //%
+        private const int MAX_TURN_ANGLE = 90; //°
+        private const int MIN_SEGMENT_LENGTH = 7; //px
+        private const int MAX_SEGMENT_LENGTH = 8; //px
 
         private Random Random;
         private Map Map;
@@ -31,110 +35,68 @@ namespace Conquest.MapGeneration
 
         public void GenerateMap()
         {
+            Map.GetWriteableBitmap().FillRectangle(0, 0, Map.Width, Map.Height, Map.White);
             for(int y= 0; y < Map.Height; y++)
             {
                 for(int x = 0; x < Map.Width; x++)
                 {
-                    Map.SetPixel(x, y, Map.White);
                     Map.CountryMap[x, y] = MapPixelType.UNASSIGNED_COUNTRY;
                 }
             }
 
-            for(int i = 0; i < STARTING_POINTS; i++)
+            for (int i = 0; i < Map.Width * Map.Height / STARTING_POINT_DENSITY; i++)
             {
                 int x = Random.Next(Map.Width - 6) + 3;
                 int y = Random.Next(Map.Height - 6) + 3;
 
-                int dir = Random.Next(8);
+                int dir = Random.Next(360);
                 ActionQueue.Add(() => Spread(x, y, dir));
-                switch(dir)
-                {
-                    case 0:
-                        ActionQueue.Add(() => Spread(x, y + 1, (dir + 4) % 8));
-                        break;
-
-                    case 1:
-                        ActionQueue.Add(() => Spread(x - 1, y + 1, (dir + 4) % 8));
-                        break;
-
-                    case 2:
-                        ActionQueue.Add(() => Spread(x - 1, y, (dir + 4) % 8));
-                        break;
-
-                    case 3:
-                        ActionQueue.Add(() => Spread(x - 1, y - 1, (dir + 4) % 8));
-                        break;
-
-                    case 4:
-                        ActionQueue.Add(() => Spread(x, y - 1, (dir + 4) % 8));
-                        break;
-
-                    case 5:
-                        ActionQueue.Add(() => Spread(x + 1, y - 1, (dir + 4) % 8));
-                        break;
-
-                    case 6:
-                        ActionQueue.Add(() => Spread(x + 1, y, (dir + 4) % 8));
-                        break;
-
-                    case 7:
-                        ActionQueue.Add(() => Spread(x + 1, y + 1, (dir + 4) % 8));
-                        break;
-
-                }
+                ActionQueue.Add(() => Spread(x, y, (dir + 180) % 360));
             }
         }
 
         private void Spread(int x, int y, int dir)
         {
             if (x < 0 || x >= Map.Width || y < 0 || y >= Map.Height) return;
-            Map.SetPixel(x, y, Map.Black);
-            Map.CountryMap[x, y] = MapPixelType.BORDER;
-            int dirChange = Random.Next(100);
-            int newDir;
-            if (dirChange < 5) newDir = (dir - 2) % 8;
-            else if (dirChange < 15) newDir = (dir - 1) % 8;
-            else if (dirChange < 80) newDir = dir;
-            else if (dirChange < 95) newDir = (dir + 1) % 8;
-            else newDir = (dir + 2) % 8;
+            int dirChange = Random.Next(MAX_TURN_ANGLE);
+            int newDir = (dir + dirChange - MAX_TURN_ANGLE / 2) % 360;
 
-            switch(newDir)
+            int segLen = Random.Next(MAX_SEGMENT_LENGTH - MIN_SEGMENT_LENGTH) + MIN_SEGMENT_LENGTH;
+
+            int newX = (int)(x + (Math.Sin(ToRad(newDir)) * segLen));
+            int newY = (int)(y + (Math.Cos(ToRad(newDir)) * segLen));
+
+            bool stop = false;
+            for(int i = x - SNAP_DISTANCE; i < x + SNAP_DISTANCE; i++)
             {
-                case 0:
-                    ActionQueue.Add(() => Spread(x, y - 1, newDir));
-                    break;
-
-                case 1:
-                    ActionQueue.Add(() => Spread(x + 1, y - 1, newDir));
-                    break;
-
-                case 2:
-                    ActionQueue.Add(() => Spread(x + 1, y, newDir));
-                    break;
-
-                case 3:
-                    ActionQueue.Add(() => Spread(x + 1, y + 1, newDir));
-                    break;
-
-                case 4:
-                    ActionQueue.Add(() => Spread(x, y + 1, newDir));
-                    break;
-
-                case 5:
-                    ActionQueue.Add(() => Spread(x - 1, y + 1, newDir));
-                    break;
-
-                case 6:
-                    ActionQueue.Add(() => Spread(x - 1, y, newDir));
-                    break;
-
-                case 7:
-                    ActionQueue.Add(() => Spread(x - 1, y - 1, newDir));
-                    break;
+                for(int j = y - SNAP_DISTANCE; j < y + SNAP_DISTANCE; j++)
+                {
+                    Console.WriteLine(i + " " + j);
+                    if (i >= 0 && i < Map.Width && j > 0 && j < Map.Height && Map.CountryMap[i, j] == MapPixelType.BORDER && !(i == x && j == y))
+                    {
+                        newX = i;
+                        newY = j;
+                        stop = true;
+                    }
+                }
             }
+
+            if (newX < 0) newX = 0;
+            if (newX >= Map.Width) newX = Map.Width - 1;
+            if (newY < 0) newY = 0;
+            if (newY >= Map.Height) newY = Map.Height - 1;
+
+            Map.GetWriteableBitmap().DrawLine(x, y, newX, newY, Map.Black);
+            Map.CountryMap[newX, newY] = MapPixelType.BORDER;
+            if(!stop) ActionQueue.Add(() => Spread(newX, newY, newDir));
         }
 
-        public BitmapImage ConvertWriteableBitmapToBitmapImage(WriteableBitmap wbm)
+        public double ToRad(double angle)
+        {
+            return (Math.PI / 180) * angle;
+        }
+
+        public static BitmapImage ConvertWriteableBitmapToBitmapImage(WriteableBitmap wbm)
         {
             BitmapImage bmImage = new BitmapImage();
             using (MemoryStream stream = new MemoryStream())

@@ -31,9 +31,15 @@ namespace Conquest.MapClasses
         {
             White = Color.FromArgb(255, 255, 255, 255);
             Black = Color.FromArgb(255, 0, 0, 0);
+            image = new Image();
+            RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
+            RenderOptions.SetEdgeMode(image, EdgeMode.Unspecified);
+            image.Stretch = Stretch.None;
+            image.HorizontalAlignment = HorizontalAlignment.Center;
+            image.VerticalAlignment = VerticalAlignment.Center;
         }
 
-        public void SetMap(BitmapImage bitmapImage)
+        public void SetMap(BitmapImage bitmapImage, bool hardReset = true)
         {
             OriginalImage = bitmapImage;
             Stride = bitmapImage.PixelWidth * 4;
@@ -41,17 +47,13 @@ namespace Conquest.MapClasses
             Pixels = new byte[size];
             bitmapImage.CopyPixels(Pixels, Stride, 0);
             writeableBitmap = new WriteableBitmap((int)(bitmapImage.PixelWidth), (int)(bitmapImage.PixelHeight), 96, 96, PixelFormats.Bgr32, null);
-            image = new Image();
-            RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
-            RenderOptions.SetEdgeMode(image, EdgeMode.Unspecified);
             image.Source = writeableBitmap;
-            image.Stretch = Stretch.None;
-            image.HorizontalAlignment = HorizontalAlignment.Center;
-            image.VerticalAlignment = VerticalAlignment.Center;
-
-            DistanceToNearestBorder = new float[Width, Height];
-            CountryMap = new int[Width, Height];
-            CompletedPoints = new bool[Width, Height];
+            if (hardReset)
+            {
+                DistanceToNearestBorder = new float[Width, Height];
+                CountryMap = new int[Width, Height];
+                CompletedPoints = new bool[Width, Height];
+            }
         }
 
         public void Init()
@@ -81,9 +83,9 @@ namespace Conquest.MapClasses
             return image;
         }
 
-        public BitmapImage GetBitmapImage()
+        public WriteableBitmap GetWriteableBitmap()
         {
-            return OriginalImage;
+            return writeableBitmap;
         }
 
         public void RefreshMap()
@@ -137,7 +139,7 @@ namespace Conquest.MapClasses
             writeableBitmap.CopyPixels(Pixels, Stride, 0);
         }
 
-        public void DrawCountry(Country country)
+        public void DrawCountry(Country country, bool fillOcean = false)
         {
             writeableBitmap.Lock();
             unsafe
@@ -145,6 +147,7 @@ namespace Conquest.MapClasses
                 foreach (Point p in country.AreaPixels)
                 {
                     Color color = country.Player == null ? White : country.Player.PrimaryColor;
+                    if (fillOcean) color = GameModel.RandomOceanColor();
                     int pBackBuffer = (int)writeableBitmap.BackBuffer;
                     pBackBuffer += (int)p.Y * writeableBitmap.BackBufferStride;
                     pBackBuffer += (int)p.X * 4;

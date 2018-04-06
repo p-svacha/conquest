@@ -5,12 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
 
 namespace Conquest.MapClasses
 {
     class Country
     {
         public int Id;
+        public Color Color;
         public string Name;
         public int Army;
         public Point Center;
@@ -21,12 +23,13 @@ namespace Conquest.MapClasses
         public Player Player;
         public bool Selected;
 
-        public Country(int id)
+        public Country(int id, Color color)
         {
             Neighbours = new List<Country>();
             AreaPixels = new List<Point>();
             BorderPixels = new List<Point>();
             this.Id = id;
+            this.Color = color;
         }
 
         public void AddNeighbour(Country c)

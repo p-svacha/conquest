@@ -36,6 +36,7 @@ namespace Conquest.Model
         }
 
         private const int COUNTRY_MIN_SIZE = 300;
+        private const int OCEAN_AMOUNT = 1;
 
         private const int FPS_DEFAULT = 400;
         private const int IN_TURN_UPDATE = 200; //ms
@@ -77,7 +78,7 @@ namespace Conquest.Model
 
             if(generatingMap)
             {
-                MapGenerator gen = new MapGenerator(800, 800, Map, ActionQueue);
+                MapGenerator gen = new MapGenerator(200, 200, Map, ActionQueue);
                 ActionQueue.Add(() => gen.GenerateMap());
                 SetState(GameState.GeneratingMap);
             }
@@ -112,7 +113,8 @@ namespace Conquest.Model
                     if (!InvokeAction()) {
                         if (initX == Map.Width - 1 && initY == Map.Height - 1)
                         {
-                            RemoveSmallCountries();
+                            CreateWaters();
+                            RemoveUnnecessaryBorders();
                             ActionQueue.AddRange(FindNeighboursQueue);
                             SetState(GameState.Initializing_FindNeighbours);
                         }
@@ -205,7 +207,7 @@ namespace Conquest.Model
         /// <summary>
         /// Invokes the next action in the action queue. Returns false if the queue is empty.
         /// </summary>
-        private bool InvokeAction(int waitAfterAction = 0)
+        private bool InvokeAction(int waitAfterAction = 0, bool forceNoRefresh = false)
         {
             if (ActionQueue.Count == 0) return false;
             if (DateTime.Now > NextActionInvoke)
@@ -221,7 +223,7 @@ namespace Conquest.Model
                 ActionQueue.Remove(action);
                 action.Invoke();
                 NextActionInvoke = DateTime.Now + TimeSpan.FromMilliseconds(waitAfterAction);
-                if(waitAfterAction > 0) RefreshMap();
+                if(waitAfterAction > 0 && !forceNoRefresh) RefreshMap();
             }
             return true;
         }
@@ -387,9 +389,18 @@ namespace Conquest.Model
             }
         }
 
-        private void RemoveSmallCountries()
+        private void CreateWaters()
         {
-            foreach(Country c in Countries)
+            // Replace huge countries with ocean
+            List<Country> newOceans = Countries.OrderByDescending(x => x.AreaPixels.Count).Take(OCEAN_AMOUNT).ToList();
+            Countries = Countries.Except(newOceans).ToList();
+            foreach (Country c in newOceans)
+            {
+                Map.DrawCountry(c, true);
+            }
+
+            // Replace small countries with lakes
+            foreach (Country c in Countries)
             {
                 if (c.AreaPixels.Count < COUNTRY_MIN_SIZE)
                 {
@@ -398,6 +409,7 @@ namespace Conquest.Model
                 else Map.DrawCountry(c);
             }
             Countries = Countries.Where(c => c.AreaPixels.Count > COUNTRY_MIN_SIZE).ToList();
+            
             for (int i = 0; i < Countries.Count; i++)
             {
                 IdReplacements.Add(Countries[i].Id, i);
@@ -408,7 +420,37 @@ namespace Conquest.Model
                 for(int x = 0; x < Map.Width; x++)
                 {
                     if (IdReplacements.ContainsKey(Map.CountryMap[x, y])) Map.CountryMap[x, y] = IdReplacements[Map.CountryMap[x, y]];
-                    else if(Map.CountryMap[x,y] >= 0) Map.CountryMap[x, y] = MapPixelType.OCEAN;
+                    else if (Map.CountryMap[x, y] >= 0) Map.CountryMap[x, y] = MapPixelType.OCEAN;
+                }
+            }
+            Map.SetMap(MapGenerator.ConvertWriteableBitmapToBitmapImage(Map.GetWriteableBitmap()), false);
+            RefreshMap();
+        }
+
+        private void RemoveUnnecessaryBorders()
+        {
+            for(int y = 0; y < Map.Height; y++)
+            {
+                for(int x = 0; x < Map.Width; x++)
+                {
+                    if (Map.CountryMap[x, y] == MapPixelType.BORDER)
+                    {
+                        List<int> borderingCountries = new List<int>();
+                        if (x > 0 && !borderingCountries.Contains(Map.CountryMap[x - 1, y]) && Map.CountryMap[x - 1, y] != MapPixelType.BORDER) borderingCountries.Add(Map.CountryMap[x - 1, y]);
+                        if (x < Map.Width - 1 && !borderingCountries.Contains(Map.CountryMap[x + 1, y]) && Map.CountryMap[x + 1, y] != MapPixelType.BORDER) borderingCountries.Add(Map.CountryMap[x + 1, y]);
+                        if (y > 0 && !borderingCountries.Contains(Map.CountryMap[x, y - 1]) && Map.CountryMap[x, y - 1] != MapPixelType.BORDER) borderingCountries.Add(Map.CountryMap[x, y - 1]);
+                        if (y < Map.Height - 1 && !borderingCountries.Contains(Map.CountryMap[x, y + 1]) && Map.CountryMap[x, y + 1] != MapPixelType.BORDER) borderingCountries.Add(Map.CountryMap[x, y + 1]);
+                        if (borderingCountries.Count == 1)
+                        {
+                            Map.CountryMap[x, y] = borderingCountries[0];
+                            if (Map.CountryMap[x, y] >= 0)
+                            {
+                                Countries[Map.CountryMap[x, y]].AreaPixels.Add(new Point(x, y));
+                                Map.SetPixel(x, y, Map.White);
+                            }
+                            else Map.SetPixel(x, y, RandomOceanColor());
+                        }
+                    }
                 }
             }
             Map.SetMap(MapGenerator.ConvertWriteableBitmapToBitmapImage(Map.GetWriteableBitmap()), false);

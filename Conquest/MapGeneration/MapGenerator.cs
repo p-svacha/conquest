@@ -13,12 +13,13 @@ namespace Conquest.MapGeneration
     class MapGenerator
     {
 
-        private const int SNAP_DISTANCE = 3; //px
-        private const int STARTING_POINT_DENSITY = 10000;  // the lower the denser
-        private const float SPLIT_CHANCE = 0.02f; //%
-        private const int MAX_TURN_ANGLE = 90; //°
-        private const int MIN_SEGMENT_LENGTH = 7; //px
-        private const int MAX_SEGMENT_LENGTH = 8; //px
+        private const int SNAP_DISTANCE = 2; //px
+        private const float LINE_DENSITY = 80;  // active lines at the beginning per 1 000 000 pixels
+        private int activeLines;
+        private const float SPLIT_CHANCE = 35; // per 1000 ticks
+        private const int MAX_TURN_ANGLE = 40; //°
+        private const int MIN_SEGMENT_LENGTH = 3; //px
+        private const int MAX_SEGMENT_LENGTH = 4; //px
 
         private Random Random;
         private Map Map;
@@ -44,8 +45,9 @@ namespace Conquest.MapGeneration
                 }
             }
 
-            for (int i = 0; i < Map.Width * Map.Height / STARTING_POINT_DENSITY; i++)
+            for (int i = 0; i < Map.Width * Map.Height / 1000000f * LINE_DENSITY; i++)
             {
+                activeLines += 2;
                 int x = Random.Next(Map.Width - 6) + 3;
                 int y = Random.Next(Map.Height - 6) + 3;
 
@@ -57,21 +59,34 @@ namespace Conquest.MapGeneration
 
         private void Spread(int x, int y, int dir)
         {
+            
             if (x < 0 || x >= Map.Width || y < 0 || y >= Map.Height) return;
             int dirChange = Random.Next(MAX_TURN_ANGLE);
             int newDir = (dir + dirChange - MAX_TURN_ANGLE / 2) % 360;
 
+            CreateSegment(x, y, newDir);
+            //Split
+            if (Random.Next(1000) < SPLIT_CHANCE)
+            {
+                activeLines++;
+                int mir = Random.Next(2) == 0 ? -1 : 1;
+                int splitDir = mir * 90 + dir + Random.Next(60) - 30;
+                CreateSegment(x, y, splitDir);
+            }
+        }
+
+        private void CreateSegment(int x, int y, int dir)
+        {
             int segLen = Random.Next(MAX_SEGMENT_LENGTH - MIN_SEGMENT_LENGTH) + MIN_SEGMENT_LENGTH;
 
-            int newX = (int)(x + (Math.Sin(ToRad(newDir)) * segLen));
-            int newY = (int)(y + (Math.Cos(ToRad(newDir)) * segLen));
+            int newX = (int)(x + (Math.Sin(ToRad(dir)) * segLen));
+            int newY = (int)(y + (Math.Cos(ToRad(dir)) * segLen));
 
             bool stop = false;
-            for(int i = x - SNAP_DISTANCE; i < x + SNAP_DISTANCE; i++)
+            for (int i = newX - SNAP_DISTANCE; i < newX + SNAP_DISTANCE; i++)
             {
-                for(int j = y - SNAP_DISTANCE; j < y + SNAP_DISTANCE; j++)
+                for (int j = newY - SNAP_DISTANCE; j < newY + SNAP_DISTANCE; j++)
                 {
-                    Console.WriteLine(i + " " + j);
                     if (i >= 0 && i < Map.Width && j > 0 && j < Map.Height && Map.CountryMap[i, j] == MapPixelType.BORDER && !(i == x && j == y))
                     {
                         newX = i;
@@ -81,14 +96,34 @@ namespace Conquest.MapGeneration
                 }
             }
 
-            if (newX < 0) newX = 0;
-            if (newX >= Map.Width) newX = Map.Width - 1;
-            if (newY < 0) newY = 0;
-            if (newY >= Map.Height) newY = Map.Height - 1;
+            if (newX < 0)
+            {
+                newX = 0;
+                stop = true;
+            }
+            if (newX >= Map.Width)
+            {
+                newX = Map.Width - 1;
+                stop = true;
+            }
+            if (newY < 0)
+            {
+                newY = 0;
+                stop = true;
+            }
+            if (newY >= Map.Height)
+            {
+                newY = Map.Height - 1;
+                stop = true;
+            }
 
             Map.GetWriteableBitmap().DrawLine(x, y, newX, newY, Map.Black);
             Map.CountryMap[newX, newY] = MapPixelType.BORDER;
-            if(!stop) ActionQueue.Add(() => Spread(newX, newY, newDir));
+            if (!stop)
+            {
+                ActionQueue.Add(() => Spread(newX, newY, dir));
+            }
+            else activeLines--;
         }
 
         public double ToRad(double angle)

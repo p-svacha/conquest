@@ -38,7 +38,20 @@ namespace Conquest.AI
 
         public override void EndTurn(GameModel model)
         {
-            
+            foreach(Country c in Player.Countries.OrderByDescending(x => x.Army).ToList())
+            {
+                if(c.Neighbours.Where(x => x.Player != Player).Count() == 0)
+                {
+                    foreach(Country n in c.Neighbours)
+                    {
+                        if (n.Player == Player && n.Neighbours.OrderBy(x => x.Army).Where(x => x.Player != Player).Count() > 0)
+                        {
+                            model.MoveArmy(c, n, (int)(c.Army * 0.75));
+                            return;
+                        }
+                    }
+                }
+            }
         }
 
     }

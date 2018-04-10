@@ -78,7 +78,7 @@ namespace Conquest.Model
 
             if(generatingMap)
             {
-                MapGenerator gen = new MapGenerator(200, 200, Map, ActionQueue);
+                MapGenerator gen = new MapGenerator(350, 200, Map, ActionQueue);
                 ActionQueue.Add(() => gen.GenerateMap());
                 SetState(GameState.GeneratingMap);
             }
@@ -313,7 +313,7 @@ namespace Conquest.Model
             });
         }
 
-        private void MoveArmy(Country source, Country target, int amount)
+        public void MoveArmy(Country source, Country target, int amount)
         {
             ActionQueue.Add(() =>
             {

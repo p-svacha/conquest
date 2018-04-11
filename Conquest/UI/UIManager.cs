@@ -60,7 +60,7 @@ namespace Conquest.UI
 
                 //army
                 Label lblArmy = InfoLabel("Army", 2, 0);
-                Label valArmy = InfoLabel(c.Army + "", 2, 1);
+                Label valArmy = InfoLabel(c.Army + " / " + c.MaxArmy, 2, 1);
             }
         }
 

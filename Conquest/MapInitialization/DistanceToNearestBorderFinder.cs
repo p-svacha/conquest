@@ -45,6 +45,7 @@ namespace Conquest.MapGeneration
 
         private void Spread(int x, int y, float distance, bool eightDirections)
         {
+            if (Map.CountryMap[x, y] == MapPixelType.OCEAN) return;
             if (distance + 1 < Map.DistanceToNearestBorder[x - 1 < 0 ? 0 : x - 1, y])
             {
                 ActionQueue.Add(() => Spread(x - 1 < 0 ? 0 : x - 1, y, distance + 1f, eightDirections));

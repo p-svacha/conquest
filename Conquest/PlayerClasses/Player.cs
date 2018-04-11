@@ -32,16 +32,16 @@ namespace Conquest.PlayerClasses
 
             Countries = new List<Country>();
             Continents = new List<Continent>();
-            AI = new AI_FullRandom(this);
+            AI = new AI_MultipleSafeAttacks(this);
         }
 
         public void StartTurn(GameModel model)
         {
             AI.StartTurn(model);
         }
-        public void DoTurn(GameModel model)
+        public bool DoTurn(GameModel model)
         {
-            AI.NextTurn(model);
+            return AI.NextTurn(model);
         }
         public void EndTurn(GameModel model)
         {

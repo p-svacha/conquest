@@ -15,6 +15,7 @@ namespace Conquest.MapClasses
         public Color Color;
         public string Name;
         public int Army;
+        public int MaxArmy;
         public Point Center;
         public List<Point> AreaPixels;
         public List<Point> BorderPixels;

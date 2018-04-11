@@ -172,10 +172,11 @@ namespace Conquest.MapClasses
                         writeableBitmap.AddDirtyRect(new Int32Rect((int)p.X, (int)p.Y, 1, 1));
                     }
                 }
+                DrawArmy(country);
             }
             writeableBitmap.Unlock();
         }
-        public void DrawArmy(Country c)
+        private void DrawArmy(Country c)
         {
             if (c.Army > 0)
             {

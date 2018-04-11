@@ -20,7 +20,7 @@ namespace Conquest
         {
             InitializeComponent();
             UIManager UIManager = new UIManager(InfoPanel, MapPanel, CoordinatesLabel, NearestBorderLabel, PlayerOrder, GraphNumCountry, GraphArmy, GraphDensity);
-            Model = new GameModel(this, UIManager, true);
+            Model = new GameModel(this, UIManager, AutoRun, RunSpeed, true);
 
             MapPanel.Children.Add(Model.GetMapImage());
 
@@ -57,6 +57,18 @@ namespace Conquest
         private void NextTurn_Click(object sender, RoutedEventArgs e)
         {
             Model.NextTurn();
+        }
+
+        private void Stop_Click(object sender, RoutedEventArgs e)
+        {
+            Model.StopGame();
+        }
+
+        private void GenerateMap_Click(object sender, RoutedEventArgs e)
+        {
+            Model.GenerateMap(int.Parse(MapWidth.Text), int.Parse(MapHeight.Text), int.Parse(MinCountrySize.Text), int.Parse(CountriesPerOcean.Text));
+            MapPanel.Children.Clear();
+            MapPanel.Children.Add(Model.GetMapImage());
         }
     }
 }

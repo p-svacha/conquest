@@ -60,6 +60,8 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="AI\AIBase.cs" />
+    <Compile Include="AI\AI_MultipleSafeAttacks.cs" />
+    <Compile Include="AI\AI_OneSafeAttack.cs" />
     <Compile Include="AI\AI_FullRandom.cs" />
     <Compile Include="MapGeneration\MapGenerator.cs" />
     <Compile Include="MapInitialization\DistanceToNearestBorderFinder.cs" />

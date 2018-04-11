@@ -24,34 +24,21 @@ namespace Conquest.AI
             }
         }
 
-        public override void NextTurn(GameModel model)
+        public override bool NextTurn(GameModel model)
         {
             List<Country> sources = Player.Countries.Where(c => c.Army > 0).Where(c => c.Neighbours.Where(n => n.Player != Player).Count() > 0).ToList();
-            if (sources.Count == 0) return;
+            if (sources.Count == 0) return false;
             Country source = sources[Random.Next(sources.Count)];
 
             List<Country> targets = source.Neighbours.Where(c => c.Player != Player).ToList();
             Country target = targets[Random.Next(targets.Count)];
 
             model.Attack(source, target);
+            return false;
         }
 
         public override void EndTurn(GameModel model)
         {
-            foreach(Country c in Player.Countries.OrderByDescending(x => x.Army).ToList())
-            {
-                if(c.Neighbours.Where(x => x.Player != Player).Count() == 0)
-                {
-                    foreach(Country n in c.Neighbours)
-                    {
-                        if (n.Player == Player && n.Neighbours.OrderBy(x => x.Army).Where(x => x.Player != Player).Count() > 0)
-                        {
-                            model.MoveArmy(c, n, (int)(c.Army * 0.75));
-                            return;
-                        }
-                    }
-                }
-            }
         }
 
     }

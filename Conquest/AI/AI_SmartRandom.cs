@@ -9,23 +9,31 @@ using Conquest.PlayerClasses;
 
 namespace Conquest.AI
 {
-    class AI_MultipleSafeAttacks : AIBase
+    class AI_SmartRandom : AIBase
     {
-        public AI_MultipleSafeAttacks(Player player)
+        public AI_SmartRandom(Player player)
         {
             Player = player;
-            Tag = "MSA";
+            Tag = "SR";
         }
 
         public override void StartTurn(GameModel model)
         {
-            // Only distribute to border countries
             for (int i = 0; i < Player.Countries.Count; i++)
             {
-                List<Country> targets = Player.Countries.Where(c => c.Army < c.MaxArmy).Where(c => c.Neighbours.Where(n => n.Player != Player).Count() > 0).ToList();
-                if (targets.Count == 0) targets = Player.Countries.Where(c => c.Army < c.MaxArmy).ToList();
-                if (targets.Count == 0) return;
-                model.DistributeArmy(targets[Random.Next(targets.Count)]);
+                if (Random.Next(4) <= 2)
+                {
+                    List<Country> targets = Player.Countries.Where(c => c.Army < c.MaxArmy).Where(c => c.Neighbours.Where(n => n.Player != Player).Count() > 0).ToList();
+                    if (targets.Count == 0) targets = Player.Countries.Where(c => c.Army < c.MaxArmy).ToList();
+                    if (targets.Count == 0) return;
+                    model.DistributeArmy(targets[Random.Next(targets.Count)]);
+                }
+                else
+                {
+                    List<Country> targets = Player.Countries.Where(c => c.Army < c.MaxArmy).ToList();
+                    if (targets.Count == 0) return;
+                    model.DistributeArmy(targets[Random.Next(targets.Count)]);
+                }
             }
         }
 
@@ -39,7 +47,7 @@ namespace Conquest.AI
                     if(source.Army > target.Army)
                     {
                         model.Attack(source, target);
-                        return true;
+                        return Random.Next(10) < 7;
                     }
                 }
             }

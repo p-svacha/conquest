@@ -11,8 +11,9 @@ namespace Conquest.AI
 {
     abstract class AIBase
     {
-        protected Random Random = new Random();
+        protected static Random Random = new Random();
         protected Player Player;
+        public string Tag;
         public abstract void StartTurn(GameModel model);
         public abstract bool NextTurn(GameModel model);
         public abstract void EndTurn(GameModel model);

@@ -180,6 +180,18 @@ namespace Conquest.UI
                 rect.SetValue(Grid.RowProperty, 0);
                 PlayerOrder.Children.Add(rect);
 
+                Label txtAI = new Label()
+                {
+                    Content = players.Where(p => p.Alive).ToList()[i].AI.Tag,
+                    Foreground = new SolidColorBrush(players.Where(p => p.Alive).ToList()[i].SecondaryColor),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    FontSize = 8
+                };
+                txtAI.SetValue(Grid.ColumnProperty, i);
+                txtAI.SetValue(Grid.RowProperty, 0);
+                PlayerOrder.Children.Add(txtAI);
+
                 if (currentPlayer == players.Where(p => p.Alive).ToList()[i].Id)
                 {
                     Rectangle selectRect = new Rectangle()

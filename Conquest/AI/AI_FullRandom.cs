@@ -14,13 +14,16 @@ namespace Conquest.AI
         public AI_FullRandom(Player player)
         {
             Player = player;
+            Tag = "FR";
         }
 
         public override void StartTurn(GameModel model)
         {
             for (int i = 0; i < Player.Countries.Count; i++)
             {
-                model.DistributeArmy(Player.Countries[Random.Next(Player.Countries.Count)]);
+                List<Country> targets = Player.Countries.Where(c => c.Army < c.MaxArmy).ToList();
+                if (targets.Count == 0) return;
+                model.DistributeArmy(targets[Random.Next(targets.Count)]);
             }
         }
 

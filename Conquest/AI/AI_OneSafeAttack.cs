@@ -14,6 +14,7 @@ namespace Conquest.AI
         public AI_OneSafeAttack(Player player)
         {
             Player = player;
+            Tag = "OSA";
         }
 
         public override void StartTurn(GameModel model)
@@ -21,7 +22,9 @@ namespace Conquest.AI
             // Only distribute to border countries
             for (int i = 0; i < Player.Countries.Count; i++)
             {
-                List<Country> targets = Player.Countries.Where(c => c.Neighbours.Where(n => n.Player != Player).Count() > 0).ToList();
+                List<Country> targets = Player.Countries.Where(c => c.Army < c.MaxArmy).Where(c => c.Neighbours.Where(n => n.Player != Player).Count() > 0).ToList();
+                if (targets.Count == 0) targets = Player.Countries.Where(c => c.Army < c.MaxArmy).ToList();
+                if (targets.Count == 0) return;
                 model.DistributeArmy(targets[Random.Next(targets.Count)]);
             }
         }

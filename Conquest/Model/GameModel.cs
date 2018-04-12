@@ -37,6 +37,7 @@ namespace Conquest.Model
 
         private int CountryMinSize;
         private int CountriesPerOcean;
+        private int islandConnections = 2;
 
         private const int FPS_DEFAULT = 400;
 
@@ -272,9 +273,9 @@ namespace Conquest.Model
 
         public void DistributeArmy(Country c)
         {
+            c.Army++;
             ActionQueue.Add(() =>
             {
-                c.Army++;
                 Map.DrawCountry(c);
                 UIManager.RefreshGraphs(Players);
             });
@@ -548,12 +549,7 @@ namespace Conquest.Model
             while(Clusters.Count > 1)
             {
                 HashSet<Country> clusterToConnect = Clusters[0];
-                int minDistance = int.MaxValue;
-                Country clusterC = null;
-                Point clusterP = new Point(0, 0);
-                Country otherC = null;
-                Point otherP = new Point(0, 0);
-                HashSet<Country> otherCluster = null;
+                List<OceanConnection> connections = new List<OceanConnection>();
                 // Find nearest neighbours
                 foreach (Country c1 in clusterToConnect) {
                     foreach (HashSet<Country> others in Clusters.Skip(1).ToList())
@@ -564,50 +560,60 @@ namespace Conquest.Model
                             {
                                 foreach(Point p2 in c2.AreaPixels)
                                 {
-                                    int distance = (int)(Math.Sqrt((p2.X - p1.X) * (p2.X - p1.X)) + ((p2.Y - p1.Y) * (p2.Y - p1.Y)));
-                                    if (distance < minDistance)
+                                    int distance = (int)(Math.Sqrt((p2.X - p1.X) * (p2.X - p1.X) + ((p2.Y - p1.Y) * (p2.Y - p1.Y))));
+                                    if (connections.Count < islandConnections || distance < connections[0].Distance)
                                     {
-                                        minDistance = distance;
-                                        clusterC = c1;
-                                        otherC = c2;
-                                        clusterP = p1;
-                                        otherP = p2;
-                                        otherCluster = others;
+                                        if (connections.Where(x => c1 == x.SourceCountry && c2 == x.TargetCountry).Count() > 0)
+                                        {
+                                            OceanConnection oldCon = connections.Where(x => c1 == x.SourceCountry && c2 == x.TargetCountry).FirstOrDefault();
+                                            if (distance < oldCon.Distance)
+                                            {
+                                                connections.Remove(oldCon);
+                                                connections.Add(new OceanConnection(distance, c1, c2, p1, p2, others));
+                                            }
+                                        }
+                                        else connections.Add(new OceanConnection(distance, c1, c2, p1, p2, others));
+                                        connections = connections.OrderBy(x => x.Distance).Take(islandConnections).OrderByDescending(x => x.Distance).ToList();
                                     }
                                 }
                             }
                         }
                     }
                 }
+
                 // Add neighbours
-                clusterC.AddNeighbour(otherC);
-                otherC.AddNeighbour(clusterC);
-                foreach(Country c in otherCluster)
+                foreach(OceanConnection con in connections)
                 {
-                    clusterToConnect.Add(c);
-                }
-                Clusters.Remove(otherCluster);
-
-                // Draw connection to map
-                double startX = clusterP.X;
-                double startY = clusterP.Y;
-                double endX = otherP.X;
-                double endY = otherP.Y;
-
-                int circlesDrawn = 0;
-                int steps = minDistance / 12;
-                Console.WriteLine(steps);
-                for(int i = 0; i < steps; i++)
-                {
-                    int targetX = (int)(startX + ((endX - startX) / steps * i));
-                    int targetY = (int)(startY + ((endY - startY) / steps * i));
-                    if(Map.CountryMap[targetX, targetY] == MapPixelType.OCEAN)
+                    con.SourceCountry.AddNeighbour(con.TargetCountry);
+                    con.TargetCountry.AddNeighbour(con.SourceCountry);
+                    foreach(Country c in con.TargetCluster)
                     {
-                        Map.GetWriteableBitmap().FillEllipseCentered(targetX, targetY, 2, 2, Color.FromArgb(255, 255, 0, 0));
-                        circlesDrawn++;
+                        clusterToConnect.Add(c);
                     }
+                    Clusters.Remove(con.TargetCluster);
+
+                    // Draw connection to map
+                    double startX = con.SourcePoint.X;
+                    double startY = con.SourcePoint.Y;
+                    double endX = con.TargetPoint.X;
+                    double endY = con.TargetPoint.Y;
+
+                    int circlesDrawn = 0;
+                    int steps = con.Distance / 2;
+                    for (int i = 0; i < steps; i++)
+                    {
+                        int targetX = (int)(startX + ((endX - startX) / steps * i));
+                        int targetY = (int)(startY + ((endY - startY) / steps * i));
+                        if (Map.CountryMap[targetX, targetY] == MapPixelType.OCEAN)
+                        {
+                            Map.GetWriteableBitmap().FillEllipseCentered(targetX, targetY, 1, 1, Color.FromArgb(255, 255, 0, 0));
+                            circlesDrawn++;
+                        }
+                    }
+                    if (circlesDrawn == 0) Map.GetWriteableBitmap().FillEllipseCentered((int)(startX + (endX - startX) / 2), (int)(startY + (endY - startY) / 2), 1, 1, Color.FromArgb(255, 255, 0, 0));
                 }
-                if (circlesDrawn == 0) Map.GetWriteableBitmap().FillEllipseCentered((int)(startX + (endX - startX) / 2), (int)(startY + (endY - startY) / 2), 2, 2, Color.FromArgb(255, 255, 0, 0));
+
+                
                 Map.SetMap(MapGenerator.ConvertWriteableBitmapToBitmapImage(Map.GetWriteableBitmap()), false);
                 RefreshMap();
             }
@@ -640,7 +646,7 @@ namespace Conquest.Model
                     }
                 }
                 c.Center = new Point(tempCenter.X, tempCenter.Y);
-                c.MaxArmy = (int)(furthestDistance*0.8f);
+                c.MaxArmy = (int)(Math.Sqrt((furthestDistance / 2) * (furthestDistance / 2) + (furthestDistance / 2) * (furthestDistance / 2)));
             }
         }
         //-----------------------------------------------------------------END INIT------------------------------------------------------------
@@ -684,9 +690,11 @@ namespace Conquest.Model
         {
             if ((State != GameState.ReadyToPlay) || numPlayers * numCountries > Countries.Count || numArmy > 50) return;
             ResetGame();
+            Random r = new Random();
             for (int i = 0; i < numPlayers; i++)
             {
-                Players.Add(new Player(Players.Count, RandomColor(Players.Select(p => p.PrimaryColor).ToArray())));
+                int ai = r.Next(5); 
+                Players.Add(new Player(Players.Count, RandomColor(Players.Select(p => p.PrimaryColor).ToArray()), ai));
             }
 
             List<int> countryIds = new List<int>();

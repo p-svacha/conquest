@@ -9,28 +9,41 @@ using Conquest.PlayerClasses;
 
 namespace Conquest.AI
 {
-    class AI_MultipleSafeAttacks : AIBase
+    class AI_AttackWhenDense : AIBase
     {
-        public AI_MultipleSafeAttacks(Player player)
+
+        private int minDensity;
+
+        public AI_AttackWhenDense(Player player)
         {
             Player = player;
-            Tag = "MSA";
+            minDensity = Random.Next(4) + 1;
+            Tag = "AD" + minDensity;
         }
 
         public override void StartTurn(GameModel model)
         {
-            // Only distribute to border countries
+            // Give it to border country with smallest army
             for (int i = 0; i < Player.Countries.Count; i++)
             {
-                List<Country> targets = Player.Countries.Where(c => c.Army < c.MaxArmy).Where(c => c.Neighbours.Where(n => n.Player != Player).Count() > 0).ToList();
-                if (targets.Count == 0) targets = Player.Countries.Where(c => c.Army < c.MaxArmy).ToList();
-                if (targets.Count == 0) return;
-                model.DistributeArmy(targets[Random.Next(targets.Count)]);
+                List<Country> targets = Player.Countries.Where(c => c.Army < c.MaxArmy).Where(c => c.Neighbours.Where(n => n.Player != Player).Count() > 0).OrderBy(c => c.Army).ToList();
+                if (targets.Count == 0)
+                {
+                    targets = Player.Countries.Where(c => c.Army < c.MaxArmy).ToList();
+                    if (targets.Count == 0) return;
+                    model.DistributeArmy(targets[Random.Next(targets.Count)]);
+                }
+                else {
+
+                }
+                model.DistributeArmy(targets[0]);
             }
         }
 
         public override bool NextTurn(GameModel model)
         {
+            // BAWN when density over 2 
+            if (Player.Density < minDensity) return false;
             if (Player.Countries.Where(c => c.Army > 0).Where(c => c.Neighbours.Where(n => n.Player != Player).Count() > 0).OrderByDescending(c => c.Army).Count() == 0) return false;
             foreach(Country source in Player.Countries.Where(c => c.Army > 0).Where(c => c.Neighbours.Where(n => n.Player != Player).Count() > 0).OrderByDescending(c => c.Army))
             {

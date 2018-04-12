@@ -60,10 +60,13 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="AI\AIBase.cs" />
+    <Compile Include="AI\AI_AttackWhenDense.cs" />
+    <Compile Include="AI\AI_SmartRandom.cs" />
     <Compile Include="AI\AI_MultipleSafeAttacks.cs" />
     <Compile Include="AI\AI_OneSafeAttack.cs" />
     <Compile Include="AI\AI_FullRandom.cs" />
     <Compile Include="MapGeneration\MapGenerator.cs" />
+    <Compile Include="MapGeneration\OceanConnection.cs" />
     <Compile Include="MapInitialization\DistanceToNearestBorderFinder.cs" />
     <Compile Include="MapInitialization\MapPixelType.cs" />
     <Compile Include="MapInitialization\NearestBorderAlgorithm.cs" />

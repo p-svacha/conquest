@@ -37,7 +37,9 @@ namespace Conquest.Model
 
         private int CountryMinSize;
         private int CountriesPerOcean;
-        private int islandConnections = 2;
+        private int islandConnections = 1; // do not change this
+        private int MaxWaterConnectionDistance = 40;
+        private int MinWaterConnectionCountryDistance = 4; // countries will not be connected when within this range (3 = min. 2 countries in between)
 
         private const int FPS_DEFAULT = 400;
 
@@ -149,6 +151,7 @@ namespace Conquest.Model
                         SetSelectedBorders();
                         SetCenters();
                         ConnectIslands();
+                        ConnectCloseCountriesOverWater(MaxWaterConnectionDistance);
                         SetState(GameState.ReadyToPlay);
                     }
                     break;
@@ -563,17 +566,37 @@ namespace Conquest.Model
                                     int distance = (int)(Math.Sqrt((p2.X - p1.X) * (p2.X - p1.X) + ((p2.Y - p1.Y) * (p2.Y - p1.Y))));
                                     if (connections.Count < islandConnections || distance < connections[0].Distance)
                                     {
-                                        if (connections.Where(x => c1 == x.SourceCountry && c2 == x.TargetCountry).Count() > 0)
+                                        // Found new short connection
+                                        OceanConnection newConnection = new OceanConnection(distance, c1, c2, p1, p2, others);
+
+                                        // Check if not crossing land
+                                        bool valid = true;
+                                        int steps = newConnection.Distance / 4;
+                                        for (int i = 0; i < steps; i++)
                                         {
-                                            OceanConnection oldCon = connections.Where(x => c1 == x.SourceCountry && c2 == x.TargetCountry).FirstOrDefault();
-                                            if (distance < oldCon.Distance)
+                                            int targetX = (int)(newConnection.SourcePoint.X + ((newConnection.TargetPoint.X - newConnection.SourcePoint.X) / steps * i));
+                                            int targetY = (int)(newConnection.SourcePoint.Y + ((newConnection.TargetPoint.Y - newConnection.SourcePoint.Y) / steps * i));
+                                            if (!(Map.CountryMap[targetX, targetY] == MapPixelType.OCEAN || Map.CountryMap[targetX, targetY] == MapPixelType.BORDER || Map.CountryMap[targetX, targetY] == newConnection.SourceCountry.Id || Map.CountryMap[targetX, targetY] == newConnection.TargetCountry.Id))
                                             {
-                                                connections.Remove(oldCon);
-                                                connections.Add(new OceanConnection(distance, c1, c2, p1, p2, others));
+                                                valid = false;
                                             }
                                         }
-                                        else connections.Add(new OceanConnection(distance, c1, c2, p1, p2, others));
-                                        connections = connections.OrderBy(x => x.Distance).Take(islandConnections).OrderByDescending(x => x.Distance).ToList();
+
+                                        if (valid)
+                                        {
+                                            // Check if connection between those country exists
+                                            if (connections.Where(x => c1 == x.SourceCountry && c2 == x.TargetCountry).Count() > 0)
+                                            {
+                                                OceanConnection oldCon = connections.Where(x => c1 == x.SourceCountry && c2 == x.TargetCountry).FirstOrDefault();
+                                                if (distance < oldCon.Distance)
+                                                {
+                                                    connections.Remove(oldCon);
+                                                    connections.Add(newConnection);
+                                                }
+                                            }
+                                            else connections.Add(newConnection);
+                                            connections = connections.OrderBy(x => x.Distance).Take(islandConnections).OrderByDescending(x => x.Distance).ToList();
+                                        }
                                     }
                                 }
                             }
@@ -618,6 +641,113 @@ namespace Conquest.Model
                 RefreshMap();
             }
 
+        }
+
+        private void ConnectCloseCountriesOverWater(int maxDistance)
+        {
+            List<OceanConnection> oceanConnections = new List<OceanConnection>();
+            foreach(Country source in Countries)
+            {
+                foreach(Country target in Countries)
+                {
+                    foreach(Point sourcePoint in source.AreaPixels)
+                    {
+                        foreach(Point targetPoint in target.AreaPixels)
+                        {
+                            if(source != target && !source.Neighbours.Contains(target) && !target.Neighbours.Contains(source) && !WithinWaterConnectionCountryRange(source, target))
+                            {
+                                int distance = (int)(Math.Sqrt((targetPoint.X - sourcePoint.X) * (targetPoint.X - sourcePoint.X) + ((targetPoint.Y - sourcePoint.Y) * (targetPoint.Y - sourcePoint.Y))));
+                                if (distance <= maxDistance)
+                                {
+                                    // Found new short connection
+                                    OceanConnection newConnection = new OceanConnection(distance, source, target, sourcePoint, targetPoint);
+
+                                    // Check if not crossing land
+                                    bool valid = true;
+                                    int steps = newConnection.Distance;
+                                    for (int i = 0; i < steps; i++)
+                                    {
+                                        int targetX = (int)(newConnection.SourcePoint.X + ((newConnection.TargetPoint.X - newConnection.SourcePoint.X) / steps * i));
+                                        int targetY = (int)(newConnection.SourcePoint.Y + ((newConnection.TargetPoint.Y - newConnection.SourcePoint.Y) / steps * i));
+                                        if (!(Map.CountryMap[targetX, targetY] == MapPixelType.OCEAN || Map.CountryMap[targetX, targetY] == MapPixelType.BORDER || Map.CountryMap[targetX, targetY] == newConnection.SourceCountry.Id || Map.CountryMap[targetX, targetY] == newConnection.TargetCountry.Id))
+                                        {
+                                            valid = false;
+                                        }
+                                    }
+
+                                    if (valid)
+                                    {
+                                        // Check if connection between those country exists
+                                        if (oceanConnections.Where(x => source == x.SourceCountry && target == x.TargetCountry).Count() > 0)
+                                        {
+                                            OceanConnection oldCon = oceanConnections.Where(x => source == x.SourceCountry && target == x.TargetCountry).FirstOrDefault();
+                                            if (distance < oldCon.Distance)
+                                            {
+                                                oceanConnections.Remove(oldCon);
+                                                oceanConnections.Add(newConnection);
+                                                newConnection.SourceCountry.AddNeighbour(newConnection.TargetCountry);
+                                                newConnection.TargetCountry.AddNeighbour(newConnection.SourceCountry);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            oceanConnections.Add(newConnection);
+                                            newConnection.SourceCountry.AddNeighbour(newConnection.TargetCountry);
+                                            newConnection.TargetCountry.AddNeighbour(newConnection.SourceCountry);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach(OceanConnection con in oceanConnections)
+            {
+                // Draw connection to map
+                double startX = con.SourcePoint.X;
+                double startY = con.SourcePoint.Y;
+                double endX = con.TargetPoint.X;
+                double endY = con.TargetPoint.Y;
+
+                int circlesDrawn = 0;
+                int steps = con.Distance / 4;
+                for (int i = 0; i < steps; i++)
+                {
+                    int targetX = (int)(startX + ((endX - startX) / steps * i));
+                    int targetY = (int)(startY + ((endY - startY) / steps * i));
+                    if (Map.CountryMap[targetX, targetY] == MapPixelType.OCEAN)
+                    {
+                        Map.GetWriteableBitmap().FillEllipseCentered(targetX, targetY, 1, 1, Color.FromArgb(255, 255, 0, 0));
+                        circlesDrawn++;
+                    }
+                }
+                if (circlesDrawn == 0) Map.GetWriteableBitmap().FillEllipseCentered((int)(startX + (endX - startX) / 2), (int)(startY + (endY - startY) / 2), 1, 1, Color.FromArgb(255, 255, 0, 0));
+            }
+
+            Map.SetMap(MapGenerator.ConvertWriteableBitmapToBitmapImage(Map.GetWriteableBitmap()), false);
+            RefreshMap();
+        }
+
+        private bool WithinWaterConnectionCountryRange(Country c1, Country c2)
+        {
+            HashSet<Country> Cluster = new HashSet<Country>();
+            Cluster.Add(c1);
+            for(int i = 1; i < MinWaterConnectionCountryDistance; i++)
+            {
+                List<Country> toAdd = new List<Country>();
+                foreach(Country c in Cluster)
+                {
+                    foreach(Country n in c.Neighbours)
+                    {
+                        if (n == c2) return true;
+                        toAdd.Add(n);
+                    }
+                }
+                foreach (Country a in toAdd) Cluster.Add(a);
+            }
+            return false;
         }
 
         private void SetSelectedBorders()
@@ -728,7 +858,7 @@ namespace Conquest.Model
             SetState(GameState.ReadyToPlay);
         }
 
-        public void GenerateMap(int width, int height, int minCountrySize, int countriesPerOcean)
+        public void GenerateMap(int width, int height, int minCountrySize, int countriesPerOcean, float countryAmountScale)
         {
             if (State != GameState.Null && State != GameState.ReadyToPlay && State != GameState.GeneratingMap && State != GameState.Initializing_FindCountries && State != GameState.Initializing_FindNeighbours && State != GameState.Initializing_FindDistancesToNearestBorder) return;
             Map = new Map();
@@ -742,7 +872,7 @@ namespace Conquest.Model
             Countries.Clear();
             CountryMinSize = minCountrySize;
             CountriesPerOcean = countriesPerOcean;
-            MapGenerator gen = new MapGenerator(width, height, Map, ActionQueue);
+            MapGenerator gen = new MapGenerator(width, height, Map, ActionQueue, countryAmountScale);
             ActionQueue.Add(() => gen.GenerateMap());
             UIManager.Init(Map.Width);
             SetState(GameState.GeneratingMap);

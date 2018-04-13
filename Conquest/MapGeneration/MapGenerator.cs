@@ -14,9 +14,9 @@ namespace Conquest.MapGeneration
     {
 
         private const int SNAP_DISTANCE = 2; //px
-        private const float LINE_DENSITY = 80;  // active lines at the beginning per 1 000 000 pixels
+        private float LINE_DENSITY = 80;  // active lines at the beginning per 1 000 000 pixels
         private int activeLines;
-        private const float SPLIT_CHANCE = 35; // per 1000 ticks
+        private float SPLIT_CHANCE = 35; // per 1000 ticks
         private const int MAX_TURN_ANGLE = 40; //°
         private const int MIN_SEGMENT_LENGTH = 3; //px
         private const int MAX_SEGMENT_LENGTH = 4; //px
@@ -25,8 +25,10 @@ namespace Conquest.MapGeneration
         private Map Map;
         private List<Action> ActionQueue;
 
-        public MapGenerator(int width, int height, Map map, List<Action> actionQueue)
+        public MapGenerator(int width, int height, Map map, List<Action> actionQueue, float countryAmountScale)
         {
+            SPLIT_CHANCE *= countryAmountScale;
+            LINE_DENSITY *= countryAmountScale;
             Random = new Random();
             this.Map = map;
             this.ActionQueue = actionQueue;

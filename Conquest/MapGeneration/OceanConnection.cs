@@ -17,7 +17,7 @@ namespace Conquest.MapGeneration
         public Point TargetPoint;
         public HashSet<Country> TargetCluster;
 
-        public OceanConnection(int distance, Country sourceCountry, Country targetCountry, Point sourcePoint, Point targetPoint, HashSet<Country> targetCluster)
+        public OceanConnection(int distance, Country sourceCountry, Country targetCountry, Point sourcePoint, Point targetPoint, HashSet<Country> targetCluster = null)
         {
             Distance = distance;
             SourceCountry = sourceCountry;

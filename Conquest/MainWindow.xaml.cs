@@ -66,7 +66,7 @@ namespace Conquest
 
         private void GenerateMap_Click(object sender, RoutedEventArgs e)
         {
-            Model.GenerateMap(int.Parse(MapWidth.Text), int.Parse(MapHeight.Text), int.Parse(MinCountrySize.Text), int.Parse(CountriesPerOcean.Text));
+            Model.GenerateMap(int.Parse(MapWidth.Text), int.Parse(MapHeight.Text), int.Parse(MinCountrySize.Text), int.Parse(CountriesPerOcean.Text), (float)(CountryAmountScale.Value));
             MapPanel.Children.Clear();
             MapPanel.Children.Add(Model.GetMapImage());
         }

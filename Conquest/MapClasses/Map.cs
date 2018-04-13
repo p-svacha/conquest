@@ -147,7 +147,7 @@ namespace Conquest.MapClasses
                 foreach (Point p in country.AreaPixels)
                 {
                     Color color = country.Player == null ? White : country.Player.PrimaryColor;
-                    if (fillOcean) color = GameModel.RandomOceanColor();
+                    if (fillOcean) color = GameModel.BackgroundColor((int)p.X, (int)p.Y, Width, Height);
                     int pBackBuffer = (int)writeableBitmap.BackBuffer;
                     pBackBuffer += (int)p.Y * writeableBitmap.BackBufferStride;
                     pBackBuffer += (int)p.X * 4;

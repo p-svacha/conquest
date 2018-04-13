@@ -468,7 +468,7 @@ namespace Conquest.Model
                                 Countries[Map.CountryMap[x, y]].AreaPixels.Add(new Point(x, y));
                                 Map.SetPixel(x, y, Map.White);
                             }
-                            else Map.SetPixel(x, y, RandomOceanColor());
+                            else Map.SetPixel(x, y, BackgroundColor(x, y, Map.Width, Map.Height));
                         }
                     }
                 }
@@ -599,7 +599,7 @@ namespace Conquest.Model
                     double endY = con.TargetPoint.Y;
 
                     int circlesDrawn = 0;
-                    int steps = con.Distance / 2;
+                    int steps = con.Distance / 4;
                     for (int i = 0; i < steps; i++)
                     {
                         int targetX = (int)(startX + ((endX - startX) / steps * i));
@@ -784,6 +784,16 @@ namespace Conquest.Model
             Random.NextBytes(colorData);
             toReturn = Color.FromArgb(255, (byte)(colorData[0] / 8), (byte)((colorData[2]+200)/2), (byte)(colorData[1] + 128 > 255 ? 255 : colorData[1] + 128));
             return toReturn;
+        }
+
+        public static Color BackgroundColor(int x, int y, int width, int height)
+        {
+            float cornerDistance = (float)(Math.Sqrt(width / 2 * width / 2 + height / 2 * height / 2));
+            float pointDistance = (float)(Math.Sqrt((x - width / 2) * (x - width / 2) + (y - height / 2) * (y - height / 2)));
+
+            float factor = pointDistance / cornerDistance;
+            byte value = (byte)(255 - 150 * factor);
+            return Color.FromArgb(255, value, value, value);
         }
     }
 }

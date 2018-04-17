@@ -65,12 +65,17 @@
     <Compile Include="AI\AI_MultipleSafeAttacks.cs" />
     <Compile Include="AI\AI_OneSafeAttack.cs" />
     <Compile Include="AI\AI_FullRandom.cs" />
+    <Compile Include="IO\MapLoader.cs" />
+    <Compile Include="IO\MapSaver.cs" />
     <Compile Include="MapGeneration\MapGenerator.cs" />
     <Compile Include="MapGeneration\OceanConnection.cs" />
     <Compile Include="MapInitialization\DistanceToNearestBorderFinder.cs" />
     <Compile Include="MapInitialization\MapPixelType.cs" />
     <Compile Include="MapInitialization\NearestBorderAlgorithm.cs" />
     <Compile Include="UI\UIManager.cs" />
+    <Compile Include="Windows\MapSelection.xaml.cs">
+      <DependentUpon>MapSelection.xaml</DependentUpon>
+    </Compile>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -83,6 +88,10 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="Windows\MapSelection.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MapClasses\Continent.cs" />

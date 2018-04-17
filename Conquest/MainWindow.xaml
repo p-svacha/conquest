@@ -28,6 +28,9 @@
                         <RowDefinition/>
                         <RowDefinition/>
                         <RowDefinition/>
+                        <RowDefinition/>
+                        <RowDefinition Height="25"/>
+                        <RowDefinition/>
                         <RowDefinition Height="25"/>
                         <RowDefinition/>
                         <RowDefinition/>
@@ -45,23 +48,30 @@
                     <Label Content="CPO" Grid.Column="2" Grid.Row="1" ToolTip="How many countries there are per ocean"></Label>
                     <TextBox Name="CountriesPerOcean" Grid.Row="1" Grid.Column="3" Text="20" ToolTip="How many countries there are per ocean"></TextBox>
 
-                    <Label Content="Amount of Countries" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2"></Label>
-                    <Slider Name="CountryAmountScale" Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="2" Minimum="0.5" Maximum="2" Value="1"></Slider>
+                    <Label Content="WC MCD" Grid.Column="0" Grid.Row="2" ToolTip="Minimum countries in between two countries that a water connection can be established."></Label>
+                    <TextBox Name="WaterConnectionMinCountryDistance" Grid.Column="1" Text="4" Grid.Row="2" ToolTip="Minimum countries in between two countries that a water connection can be established."></TextBox>
+                    <Label Content="WC MALD" Grid.Column="2" Grid.Row="2" ToolTip="Maximum airline distance between two countries that a water connection can be established."></Label>
+                    <TextBox Name="WaterConnectionMaxAirlineDistance" Grid.Row="2" Grid.Column="3" Text="40" ToolTip="Maximum airline distance between two countries that a water connection can be established."></TextBox>
 
-                    <Button Grid.Column="0" Content="Generate Map" Click="GenerateMap_Click" Grid.Row="3" Grid.ColumnSpan="4"></Button>
+                    <Label Content="Amount of Countries" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="3"></Label>
+                    <Slider Name="CountryAmountScale" Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="3" Minimum="0.5" Maximum="2" Value="1"></Slider>
+
+                    <Button Grid.Column="0" Content="Generate Map" Click="GenerateMap_Click" Grid.Row="4" Grid.ColumnSpan="4"></Button>
+
+                    <Button Grid.Column="0" Content="Load Map" Click="LoadMap_Click" Grid.Row="6" Grid.ColumnSpan="4"></Button>
+
+                    <Label Content="Players" Grid.Column="0" Grid.Row="8"></Label>
+                    <TextBox Name="NumPlayers" Grid.Column="1" Text="3" Grid.Row="8"></TextBox>
+                    <Label Content="Countries" Grid.Column="2" Grid.Row="8"></Label>
+                    <TextBox Name="NumStartingCountries" Grid.Row="8" Grid.Column="4" Text="3"></TextBox>
+                    <Label Content="Army" Grid.Column="0" Grid.Row="9"/>
+                    <TextBox Name="NumStartingArmy" Grid.Column="1" Text="10" Grid.Row="9"></TextBox>
+                    <Button Grid.Column="0" Content="Start New Game" Click="Start_Click" Grid.Row="10" Grid.ColumnSpan="3"></Button>
+                    <Button Background="LightPink" Grid.Column="3" Content="Stop" Click="Stop_Click" Grid.Row="10" Grid.ColumnSpan="1"></Button>
                     
-                    <Label Content="Players" Grid.Column="0" Grid.Row="5"></Label>
-                    <TextBox Name="NumPlayers" Grid.Column="1" Text="3" Grid.Row="5"></TextBox>
-                    <Label Content="Countries" Grid.Column="2" Grid.Row="5"></Label>
-                    <TextBox Name="NumStartingCountries" Grid.Row="5" Grid.Column="4" Text="3"></TextBox>
-                    <Label Content="Army" Grid.Column="0" Grid.Row="6"/>
-                    <TextBox Name="NumStartingArmy" Grid.Column="1" Text="10" Grid.Row="6"></TextBox>
-                    <Button Grid.Column="0" Content="Start New Game" Click="Start_Click" Grid.Row="7" Grid.ColumnSpan="3"></Button>
-                    <Button Background="LightPink" Grid.Column="3" Content="Stop" Click="Stop_Click" Grid.Row="7" Grid.ColumnSpan="1"></Button>
-                    
-                    <Button Grid.Column="0" Content="Next Turn" Click="NextTurn_Click" Grid.Row="9" Grid.ColumnSpan="2"></Button>
-                    <CheckBox Name="AutoRun" Grid.Column="2" Content="Autorun" Grid.Row="9" HorizontalAlignment="Center" VerticalAlignment="Center"></CheckBox>
-                    <TextBox Name="RunSpeed" Grid.Column="3" Grid.Row="9" Text="200"></TextBox>
+                    <Button Grid.Column="0" Content="Next Turn" Click="NextTurn_Click" Grid.Row="12" Grid.ColumnSpan="2"></Button>
+                    <CheckBox Name="AutoRun" Grid.Column="2" Content="Autorun" Grid.Row="12" HorizontalAlignment="Center" VerticalAlignment="Center"></CheckBox>
+                    <TextBox Name="RunSpeed" Grid.Column="3" Grid.Row="12" Text="200"></TextBox>
                 </Grid>
                 <Grid Margin="0 20 0 0" Name="PlayerOrder" Height="30"> 
                 </Grid>

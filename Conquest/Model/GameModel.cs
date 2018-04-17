@@ -1,7 +1,9 @@
-﻿using Conquest.MapClasses;
+﻿using Conquest.IO;
+using Conquest.MapClasses;
 using Conquest.MapGeneration;
 using Conquest.PlayerClasses;
 using Conquest.UI;
+using Conquest.Windows;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,12 +41,12 @@ namespace Conquest.Model
         private int CountriesPerOcean;
         private int islandConnections = 1; // do not change this
         private int MaxWaterConnectionDistance = 40;
-        private int MinWaterConnectionCountryDistance = 4; // countries will not be connected when within this range (3 = min. 2 countries in between)
+        private int MinWaterConnectionCountryDistance; // countries will not be connected when within this range (3 = min. 2 countries in between)
 
         private const int FPS_DEFAULT = 400;
 
         private const int SELECTED_WIDTH = 4;
-
+        
         private int initX = 0;
         private int initY = 0;
 
@@ -53,8 +55,6 @@ namespace Conquest.Model
         private CheckBox AutoRun;
         private TextBox RunSpeed;
         public List<Player> Players;
-        public List<Country> Countries;
-        public List<Continent> Continents;
         private Map Map;
         private static Random Random;
 
@@ -77,8 +77,6 @@ namespace Conquest.Model
             RunSpeed = runSpeed;
             Random = new Random();
             Players = new List<Player>();
-            Countries = new List<Country>();
-            Continents = new List<Continent>();
             ActionQueue = new List<Action>();
             FindNeighboursQueue = new List<Action>();
             Map = new Map();
@@ -152,6 +150,8 @@ namespace Conquest.Model
                         SetCenters();
                         ConnectIslands();
                         ConnectCloseCountriesOverWater(MaxWaterConnectionDistance);
+                        Map.Name = "xxx";
+                        MapSaver.SaveMap(Map, MapSelection.MAP_PATH);
                         SetState(GameState.ReadyToPlay);
                     }
                     break;
@@ -241,7 +241,7 @@ namespace Conquest.Model
                 DateTime start = DateTime.Now;
                 Map.RefreshMap();
                 UIManager.RefreshGraphs(Players);
-                foreach (Country c in Countries)
+                foreach (Country c in Map.Countries)
                 {
                     Map.DrawCountry(c);
                 }
@@ -383,12 +383,12 @@ namespace Conquest.Model
             if(!stop) {
                 if (start)
                 {
-                    id = Countries.Count();
-                    Countries.Add(new Country(id, RandomColor()));
+                    id = Map.Countries.Count();
+                    Map.Countries.Add(new Country(id, RandomColor()));
                 }
                 Map.CountryMap[x, y] = id;
-                Map.SetPixel(x, y, Countries[id].Color);
-                Countries[id].AreaPixels.Add(new System.Windows.Point(x, y));
+                Map.SetPixel(x, y, Map.Countries[id].Color);
+                Map.Countries[id].AreaPixels.Add(new System.Windows.Point(x, y));
                 if (!Map.CompletedPoints[x - 1 < 0 ? 0 : x - 1, y]) {
                     Map.CompletedPoints[x - 1 < 0 ? 0 : x - 1, y] = true;
                     ActionQueue.Insert(0, () => FloodFill(false, x - 1 < 0 ? 0 : x - 1, y, id));
@@ -413,7 +413,7 @@ namespace Conquest.Model
         private void CreateWaters()
         {
             // Replace small countries with lakes
-            foreach (Country c in Countries)
+            foreach (Country c in Map.Countries)
             {
                 if (c.AreaPixels.Count < CountryMinSize)
                 {
@@ -421,22 +421,22 @@ namespace Conquest.Model
                 }
                 else Map.DrawCountry(c);
             }
-            Countries = Countries.Where(c => c.AreaPixels.Count > CountryMinSize).ToList();
+            Map.Countries = Map.Countries.Where(c => c.AreaPixels.Count > CountryMinSize).ToList();
 
             // Replace huge countries with ocean
-            int oceanAmount = Countries.Count / CountriesPerOcean;
-            List<Country> newOceans = Countries.OrderByDescending(x => x.AreaPixels.Count).Take(oceanAmount).ToList();
-            Countries = Countries.Except(newOceans).ToList();
+            int oceanAmount = Map.Countries.Count / CountriesPerOcean;
+            List<Country> newOceans = Map.Countries.OrderByDescending(x => x.AreaPixels.Count).Take(oceanAmount).ToList();
+            Map.Countries = Map.Countries.Except(newOceans).ToList();
             foreach (Country c in newOceans)
             {
                 Map.DrawCountry(c, true);
             }
 
             // Apply changes
-            for (int i = 0; i < Countries.Count; i++)
+            for (int i = 0; i < Map.Countries.Count; i++)
             {
-                IdReplacements.Add(Countries[i].Id, i);
-                Countries[i].Id = i;
+                IdReplacements.Add(Map.Countries[i].Id, i);
+                Map.Countries[i].Id = i;
             }
             for(int y = 0; y < Map.Height; y++)
             {
@@ -468,7 +468,7 @@ namespace Conquest.Model
                             Map.CountryMap[x, y] = borderingCountries[0];
                             if (Map.CountryMap[x, y] >= 0)
                             {
-                                Countries[Map.CountryMap[x, y]].AreaPixels.Add(new Point(x, y));
+                                Map.Countries[Map.CountryMap[x, y]].AreaPixels.Add(new Point(x, y));
                                 Map.SetPixel(x, y, Map.White);
                             }
                             else Map.SetPixel(x, y, BackgroundColor(x, y, Map.Width, Map.Height));
@@ -504,8 +504,8 @@ namespace Conquest.Model
                 }
                 else
                 {
-                    Countries[id].AddNeighbour(Countries[Map.CountryMap[x, y]]);
-                    Countries[Map.CountryMap[x, y]].AddNeighbour(Countries[id]);
+                    Map.Countries[id].AddNeighbour(Map.Countries[Map.CountryMap[x, y]]);
+                    Map.Countries[Map.CountryMap[x, y]].AddNeighbour(Map.Countries[id]);
                 }
             }
         }
@@ -513,7 +513,7 @@ namespace Conquest.Model
         private void ConnectIslands()
         {
             List<HashSet<Country>> Clusters = new List<HashSet<Country>>();
-            foreach(Country c in Countries)
+            foreach(Country c in Map.Countries)
             {
                 // Create new cluster if country is not in one
                 if(Clusters.Where(x => x.Contains(c)).Count() == 0)
@@ -532,7 +532,7 @@ namespace Conquest.Model
             }
 
             // Merge clusters
-            List<Country> inMultipleClusters = Countries.Where(x => (Clusters.Where(l => l.Contains(x)).Count() > 1)).ToList();
+            List<Country> inMultipleClusters = Map.Countries.Where(x => (Clusters.Where(l => l.Contains(x)).Count() > 1)).ToList();
             foreach(Country c in inMultipleClusters)
             {
                 List<HashSet<Country>> ClustersToMerge = Clusters.Where(l => l.Contains(c)).ToList();
@@ -646,9 +646,9 @@ namespace Conquest.Model
         private void ConnectCloseCountriesOverWater(int maxDistance)
         {
             List<OceanConnection> oceanConnections = new List<OceanConnection>();
-            foreach(Country source in Countries)
+            foreach(Country source in Map.Countries)
             {
-                foreach(Country target in Countries)
+                foreach(Country target in Map.Countries)
                 {
                     foreach(Point sourcePoint in source.AreaPixels)
                     {
@@ -752,7 +752,7 @@ namespace Conquest.Model
 
         private void SetSelectedBorders()
         {
-            foreach(Country c in Countries)
+            foreach(Country c in Map.Countries)
             {
                 foreach(Point p in c.AreaPixels)
                 {
@@ -763,7 +763,7 @@ namespace Conquest.Model
 
         private void SetCenters()
         {
-            foreach(Country c in Countries)
+            foreach(Country c in Map.Countries)
             {
                 Point tempCenter = new Point(-1, -1);
                 float furthestDistance = -1;
@@ -789,7 +789,7 @@ namespace Conquest.Model
             if (CoordinatesOnMap(x, y)) {
                 UIManager.SetCoordinates(x, y);
                 UIManager.SetNearestBorder(Map.DistanceToNearestBorder[x, y]);
-                if (Map.CountryMap[x, y] >= 0) UIManager.SetCountryInfo(Countries[Map.CountryMap[x, y]]);
+                if (Map.CountryMap[x, y] >= 0) UIManager.SetCountryInfo(Map.Countries[Map.CountryMap[x, y]]);
                 else UIManager.SetCountryInfo(new Country(-1, Map.Black));
             }
         }
@@ -804,7 +804,7 @@ namespace Conquest.Model
         {
             IdReplacements.Clear();
             currentPlayer = 0;
-            foreach (Country c in Countries)
+            foreach (Country c in Map.Countries)
             {
                 c.Selected = false;
                 c.Player = null;
@@ -818,7 +818,7 @@ namespace Conquest.Model
 
         public void StartGame(int numPlayers, int numCountries, int numArmy)
         {
-            if ((State != GameState.ReadyToPlay) || numPlayers * numCountries > Countries.Count || numArmy > 50) return;
+            if ((State != GameState.ReadyToPlay) || numPlayers * numCountries > Map.Countries.Count || numArmy > 50) return;
             ResetGame();
             Random r = new Random();
             for (int i = 0; i < numPlayers; i++)
@@ -829,7 +829,7 @@ namespace Conquest.Model
 
             List<int> countryIds = new List<int>();
             List<int> playerCountryIds = new List<int>();
-            for (int j = 0; j < Countries.Count; j++) countryIds.Add(j);
+            for (int j = 0; j < Map.Countries.Count; j++) countryIds.Add(j);
             for (int i = 0; i < numPlayers; i++)
             {
                 playerCountryIds.Clear();
@@ -838,13 +838,13 @@ namespace Conquest.Model
                     int id = countryIds[Random.Next(countryIds.Count)];
                     countryIds.Remove(id);
                     playerCountryIds.Add(id);
-                    TakeCountry(Countries[id], Players[i]);
-                    DistributeArmy(Countries[id]);
+                    TakeCountry(Map.Countries[id], Players[i]);
+                    DistributeArmy(Map.Countries[id]);
                 }
 
                 for(int j = 0; j < numArmy - numCountries; j++)
                 {
-                    DistributeArmy(Countries[playerCountryIds[Random.Next(playerCountryIds.Count)]]);
+                    DistributeArmy(Map.Countries[playerCountryIds[Random.Next(playerCountryIds.Count)]]);
                 } 
             }
             SetState(GameState.Playing_Initialize);
@@ -858,10 +858,12 @@ namespace Conquest.Model
             SetState(GameState.ReadyToPlay);
         }
 
-        public void GenerateMap(int width, int height, int minCountrySize, int countriesPerOcean, float countryAmountScale)
+        public void GenerateMap(int width, int height, int minCountrySize, int countriesPerOcean, int wcmcd, int wcmald, float countryAmountScale)
         {
             if (State != GameState.Null && State != GameState.ReadyToPlay && State != GameState.GeneratingMap && State != GameState.Initializing_FindCountries && State != GameState.Initializing_FindNeighbours && State != GameState.Initializing_FindDistancesToNearestBorder) return;
             Map = new Map();
+            MinWaterConnectionCountryDistance = wcmcd;
+            MaxWaterConnectionDistance = wcmald;
             initX = 0;
             initY = 0;
             Players.Clear();
@@ -869,7 +871,7 @@ namespace Conquest.Model
             FindNeighboursQueue.Clear();
             IdReplacements.Clear();
             currentPlayer = 0;
-            Countries.Clear();
+            Map.Countries.Clear();
             CountryMinSize = minCountrySize;
             CountriesPerOcean = countriesPerOcean;
             MapGenerator gen = new MapGenerator(width, height, Map, ActionQueue, countryAmountScale);

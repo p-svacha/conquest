@@ -33,6 +33,11 @@ namespace Conquest.MapClasses
             this.Color = color;
         }
 
+        public int Size
+        {
+            get { return AreaPixels.Count; }
+        }
+
         public void AddNeighbour(Country c)
         {
             if (!Neighbours.Contains(c)) Neighbours.Add(c);

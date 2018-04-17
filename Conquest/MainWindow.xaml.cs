@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Conquest.Windows;
 
 namespace Conquest
 {
@@ -66,9 +67,16 @@ namespace Conquest
 
         private void GenerateMap_Click(object sender, RoutedEventArgs e)
         {
-            Model.GenerateMap(int.Parse(MapWidth.Text), int.Parse(MapHeight.Text), int.Parse(MinCountrySize.Text), int.Parse(CountriesPerOcean.Text), (float)(CountryAmountScale.Value));
+            Model.GenerateMap(int.Parse(MapWidth.Text), int.Parse(MapHeight.Text), int.Parse(MinCountrySize.Text), int.Parse(CountriesPerOcean.Text), int.Parse(WaterConnectionMinCountryDistance.Text), int.Parse(WaterConnectionMaxAirlineDistance.Text), (float)(CountryAmountScale.Value));
             MapPanel.Children.Clear();
             MapPanel.Children.Add(Model.GetMapImage());
+        }
+
+        private void LoadMap_Click(object sender, RoutedEventArgs e)
+        {
+            MapSelection selectionWindow = new MapSelection();
+            selectionWindow.Show();
+            this.Close();
         }
     }
 }

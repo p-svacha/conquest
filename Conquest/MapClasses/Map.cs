@@ -20,9 +20,11 @@ namespace Conquest.MapClasses
         private WriteableBitmap writeableBitmap;
         private Image image;
 
+        public string Name;
         public int[,] CountryMap;
         public float[,] DistanceToNearestBorder;
         public bool[,] CompletedPoints;
+        public List<Country> Countries;
 
         public static Color White;
         public static Color Black;
@@ -37,6 +39,7 @@ namespace Conquest.MapClasses
             image.Stretch = Stretch.None;
             image.HorizontalAlignment = HorizontalAlignment.Center;
             image.VerticalAlignment = VerticalAlignment.Center;
+            Countries = new List<Country>();
         }
 
         public void SetMap(BitmapImage bitmapImage, bool hardReset = true)

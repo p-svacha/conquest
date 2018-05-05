@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{4357D05A-8D99-472B-BF01-1D3C591AE4B0}</ProjectGuid>
+    <ProjectGuid>{661C02F0-4095-4D3B-AA5F-58DC4F14E88B}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Conquest</RootNamespace>
-    <AssemblyName>Conquest</AssemblyName>
+    <RootNamespace>FlagGenerator</RootNamespace>
+    <AssemblyName>FlagGenerator</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -24,7 +24,6 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -50,9 +49,8 @@
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
-    <Reference Include="WriteableBitmapEx.Wpf, Version=1.5.0.0, Culture=neutral, PublicKeyToken=50375ca6144f1c69, processorArchitecture=MSIL">
+    <Reference Include="WriteableBitmapEx.Wpf">
       <HintPath>..\packages\WriteableBitmapEx.1.5.1.0\lib\net40\WriteableBitmapEx.Wpf.dll</HintPath>
-      <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -60,23 +58,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="AI\AIBase.cs" />
-    <Compile Include="AI\AI_AttackWhenDense.cs" />
-    <Compile Include="AI\AI_SmartRandom.cs" />
-    <Compile Include="AI\AI_MultipleSafeAttacks.cs" />
-    <Compile Include="AI\AI_OneSafeAttack.cs" />
-    <Compile Include="AI\AI_FullRandom.cs" />
-    <Compile Include="IO\MapLoader.cs" />
-    <Compile Include="IO\MapSaver.cs" />
-    <Compile Include="MapGeneration\MapGenerator.cs" />
-    <Compile Include="MapGeneration\OceanConnection.cs" />
-    <Compile Include="MapInitialization\DistanceToNearestBorderFinder.cs" />
-    <Compile Include="MapInitialization\MapPixelType.cs" />
-    <Compile Include="MapInitialization\NearestBorderAlgorithm.cs" />
-    <Compile Include="UI\UIManager.cs" />
-    <Compile Include="Windows\MapSelection.xaml.cs">
-      <DependentUpon>MapSelection.xaml</DependentUpon>
-    </Compile>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -85,21 +66,19 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="FlagClasses\Flag.cs" />
+    <Compile Include="FlagClasses\FlagColors.cs" />
+    <Compile Include="FlagPatterns\MainPattern.cs" />
+    <Compile Include="FlagPatterns\ThreeVerticalStripes.cs" />
+    <Compile Include="FlagPatterns\ThreeHorizontalStripes.cs" />
+    <Compile Include="Generator\FlagGenerator.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="Windows\MapSelection.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MapClasses\Continent.cs" />
-    <Compile Include="MapClasses\Country.cs" />
-    <Compile Include="MapClasses\Map.cs" />
-    <Compile Include="Model\GameModel.cs" />
-    <Compile Include="PlayerClasses\Player.cs" />
+    <Compile Include="Model\FlagModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -117,7 +96,6 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -126,17 +104,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\Maps\test.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\Maps\rainbow.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\Maps\test2.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

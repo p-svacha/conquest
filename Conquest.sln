@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Conquest", "Conquest\Conquest.csproj", "{4357D05A-8D99-472B-BF01-1D3C591AE4B0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlagGeneration", "FlagGenerator\FlagGeneration.csproj", "{661C02F0-4095-4D3B-AA5F-58DC4F14E88B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RaceSimulator", "RaceSimulator\RaceSimulator.csproj", "{28E1E0E5-24A2-4D3B-BDC4-3238CC95D1E2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,8 +23,15 @@ Global
 		{661C02F0-4095-4D3B-AA5F-58DC4F14E88B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{661C02F0-4095-4D3B-AA5F-58DC4F14E88B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{661C02F0-4095-4D3B-AA5F-58DC4F14E88B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{28E1E0E5-24A2-4D3B-BDC4-3238CC95D1E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{28E1E0E5-24A2-4D3B-BDC4-3238CC95D1E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{28E1E0E5-24A2-4D3B-BDC4-3238CC95D1E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{28E1E0E5-24A2-4D3B-BDC4-3238CC95D1E2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {01420D3B-0A67-4511-8CDB-559F4F663658}
 	EndGlobalSection
 EndGlobal

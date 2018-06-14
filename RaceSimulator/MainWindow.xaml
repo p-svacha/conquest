@@ -1,0 +1,42 @@
+﻿<Window x:Class="RaceSimulator.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:RaceSimulator"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="600" Width="800">
+    <Grid>
+        <TabControl>
+            <TabItem Header="Driver Ratings">
+                <Grid Name="DriverRatingsGrid"/>
+            </TabItem>
+            <TabItem Header="Current Race">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="30"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="Start Race" Name="btnStartRace"/>
+                        <Button Grid.Column="1" Content="Next Driver" Name="btnNextDriver"/>
+                        <Button Grid.Column="2" Content="End Race" Name="btnEndRace"/>
+                    </Grid>
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Name="StarterGrid" Grid.Column="0" Background="#cccccc"></Grid>
+                        <Grid Name="RacerGrid" Grid.Column="1" Background="#eeeeee"></Grid>
+                    </Grid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

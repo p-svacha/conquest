@@ -31,12 +31,38 @@ namespace RaceSimulator
             if(showChampionships)
             {
                 int colCounter = 5;
-                foreach(Championship cs in driver.ActiveChampionships)
+                if (driver.Championships.Where(c => c.State == ChampionshipState.Open || c.State == ChampionshipState.Running).Count() == 0)
                 {
+                    Championship cs = driver.Championships.Last();
                     ColumnDefinitions.Add(new ColumnDefinition { Width = new System.Windows.GridLength(40, GridUnitType.Pixel) });
-                    Image csImage = new Image { Source = new BitmapImage(new Uri("C:\\Microsoft\\conquest\\RaceSimulator\\res\\icons\\" + cs.Icon + ".png")) };
+                    Image csImage = new Image { Source = new BitmapImage(new Uri("C:\\Microsoft\\conquest\\RaceSimulator\\res\\icons\\" + cs.Icon + ".png")), Height = 32, VerticalAlignment = VerticalAlignment.Center };
                     csImage.SetValue(Grid.ColumnProperty, colCounter++);
                     Children.Add(csImage);
+                    int rank = cs.Drivers.OrderByDescending(d => d.SeasonPoints).ToList().IndexOf(driver);
+                    if(rank < cs.Format.NumGreen)
+                    {
+                        ColumnDefinitions.Add(new ColumnDefinition { Width = new System.Windows.GridLength(40, GridUnitType.Pixel) });
+                        Image promImage = new Image { Source = new BitmapImage(new Uri("C:\\Microsoft\\conquest\\RaceSimulator\\res\\icons\\promotion.png")), Height = 20, VerticalAlignment = VerticalAlignment.Center };
+                        promImage.SetValue(Grid.ColumnProperty, colCounter - 1);
+                        Children.Add(promImage);
+                    }
+                    else if(rank >= cs.Drivers.Count - cs.Format.NumRed)
+                    {
+                        ColumnDefinitions.Add(new ColumnDefinition { Width = new System.Windows.GridLength(40, GridUnitType.Pixel) });
+                        Image relImage = new Image { Source = new BitmapImage(new Uri("C:\\Microsoft\\conquest\\RaceSimulator\\res\\icons\\relegation.png")), Height = 20, VerticalAlignment = VerticalAlignment.Center };
+                        relImage.SetValue(Grid.ColumnProperty, colCounter - 1);
+                        Children.Add(relImage);
+                    }
+                }
+                else
+                {
+                    foreach (Championship cs in driver.Championships.Where(c => c.State == ChampionshipState.Open || c.State == ChampionshipState.Running))
+                    {
+                        ColumnDefinitions.Add(new ColumnDefinition { Width = new System.Windows.GridLength(40, GridUnitType.Pixel) });
+                        Image csImage = new Image { Source = new BitmapImage(new Uri("C:\\Microsoft\\conquest\\RaceSimulator\\res\\icons\\" + cs.Icon + ".png")), Height = 32 };
+                        csImage.SetValue(Grid.ColumnProperty, colCounter++);
+                        Children.Add(csImage);
+                    }
                 }
             }
             

@@ -20,7 +20,7 @@ namespace RaceSimulator
         public int RatingChange { get; set; }
 
         public int RaceTime { get; set; }
-        public List<Championship> ActiveChampionships = new List<Championship>();
+        public List<Championship> Championships = new List<Championship>();
 
         public Driver(string Name, Country Country, int Rating)
         {

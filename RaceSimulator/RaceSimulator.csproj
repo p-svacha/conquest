@@ -63,10 +63,12 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Championship.cs" />
+    <Compile Include="ChampionshipState.cs" />
     <Compile Include="CountrySelection\Country.cs" />
     <Compile Include="CountrySelection\CountrySelector.cs" />
     <Compile Include="Driver.cs" />
     <Compile Include="DriverPanel.cs" />
+    <Compile Include="Format.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

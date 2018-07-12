@@ -12,7 +12,9 @@ namespace RaceSimulator.CountrySelection
     class CountrySelector
     {
         private Random Random = new Random();
-        private ComboBox RegionSelector;
+        private ComboBox Region1Selector;
+        private ComboBox Region2Selector;
+        private Dictionary<string, List<string>> Regions2;
         public List<Driver> Drivers;
         public List<Country> AllCountries = new List<Country>();
         private List<Country> UnusedCountries
@@ -23,9 +25,10 @@ namespace RaceSimulator.CountrySelection
             }
         }
 
-        public CountrySelector(ComboBox regionSelector)
+        public CountrySelector(ComboBox regionSelector, ComboBox region2Selector, ComboBox crRegionSelector)
         {
-            RegionSelector = regionSelector;
+            Region1Selector = regionSelector;
+            Region2Selector = region2Selector;
             List<Country> countries = new List<Country>();
             Excel.Application xlApp = null;
             Excel._Worksheet countriesWorksheet = null;
@@ -44,19 +47,21 @@ namespace RaceSimulator.CountrySelection
 
                 for (int i = 1; i <= rowCount; i++)
                 {
-                    string country = countriesRange.Cells[i, 2].Value2.ToString();
+                    string country = countriesRange.Cells[i, 1].Value2.ToString();
                     country = country.Substring(1, country.Length - 1);
-                    string region1 = countriesRange.Cells[i, 3].Value2.ToString();
-                    string region2 = countriesRange.Cells[i, 4].Value2.ToString();
-                    int population = (int)(countriesRange.Cells[i, 5].Value2);
+                    string region1 = countriesRange.Cells[i, 2].Value2.ToString();
+                    string region2 = countriesRange.Cells[i, 3].Value2.ToString();
+                    int population = (int)(countriesRange.Cells[i, 4].Value2);
                     population /= 100;
                     Country c = new Country(country, region1, region2, population);
                     AllCountries.Add(c);
                 }
-                List<string> regionSelectionList = AllCountries.Select(x => x.Region1).Distinct().ToList();
-                regionSelectionList.Insert(0, "");
-                regionSelector.ItemsSource = regionSelectionList;
+                List<string> region1SelectionList = AllCountries.Select(x => x.Region1).Distinct().ToList();
+                region1SelectionList.Insert(0, "");
+                regionSelector.ItemsSource = region1SelectionList;
                 regionSelector.SelectedIndex = 0;
+                crRegionSelector.ItemsSource = region1SelectionList;
+                crRegionSelector.SelectedIndex = 0;
             }
             finally
             {
@@ -70,10 +75,21 @@ namespace RaceSimulator.CountrySelection
             }
         }
 
-        public string RandomUnusedCountry()
+        public string RandomCountry(bool unused)
         {
-            List<Country> candidates = UnusedCountries;
-            if ((string)RegionSelector.SelectedItem != "") candidates = UnusedCountries.Where(x => x.Region1 == (string)RegionSelector.SelectedItem).ToList();
+            List<Country> candidates;
+
+            if (unused) candidates = UnusedCountries;
+            else candidates = AllCountries;
+
+            if ((string)Region1Selector.SelectedItem != "")
+            {
+                candidates = candidates.Where(x => x.Region1 == (string)Region1Selector.SelectedItem).ToList();
+                if ((string)Region2Selector.SelectedItem != "") {
+                    candidates = candidates.Where(x => x.Region1 == (string)Region1Selector.SelectedItem).Where(x => x.Region2 == (string)Region2Selector.SelectedItem).ToList();
+                }
+            }
+
             int totalPop = 0;
             for (int i = 0; i < candidates.Count; i++)
             {

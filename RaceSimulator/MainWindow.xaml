@@ -18,9 +18,13 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <ComboBox Grid.Column="0" Name="RegionSelector" SelectionChanged="RegionSelector_SelectionChanged"/>
-                        <Button Grid.Column="1" Content="Random Country" Name="btnRandomCountry" Click="btnRandomCountry_Click"/>
+                        <ComboBox Grid.Column="0" Name="Region1Selector" SelectionChanged="Region1Selector_SelectionChanged"/>
+                        <ComboBox Grid.Column="1" Name="Region2Selector" SelectionChanged="Region2Selector_SelectionChanged"/>
+                        <Button Grid.Column="2" Content="Random Unused Country" Name="btnRandomCountry" Click="btnRandomCountry_Click"/>
+                        <Button Grid.Column="3" Content="Random Country" Name="btnRandomAllCountry" Click="btnRandomAllCountry_Click"/>
                     </Grid>
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
@@ -77,6 +81,46 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
+                    </Grid>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Custom Race">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="30"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Name="CustomCSHeader">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" Name="CustomSearchDriver" TextChanged="CustomSearchDriver_TextChanged"/>
+                        <ComboBox Grid.Column="1" Name="CustomRaceRegion1Selector" SelectionChanged="CustomRaceRegion1Selector_SelectionChanged"/>
+                        <ComboBox Grid.Column="2" Name="CustomRaceRegion2Selector" SelectionChanged="CustomRaceRegion2Selector_SelectionChanged"/>
+                        <Button Grid.Column="3" Content="Add All" Name="btnAddAll" Click="btnAddAll_Click"/>
+                        <ComboBox Grid.Column="4" Name="CustomRaceFormatSelector"/>
+                        <Button Grid.Column="5" Content="Start Race" Name="btnStartCustomRace" Click="btnStartCustomRace_Click"/>
+                    </Grid>
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ScrollViewer Grid.Column="0">
+                            <Grid Name="CustomRaceLeftGrid" Background="#cccccc">
+                                
+                            </Grid>
+                        </ScrollViewer>
+                        <ScrollViewer Grid.Column="1">
+                            <Grid Name="CustomRaceRightGrid" Background="#eeeeee">
+                                
+                            </Grid>
+                        </ScrollViewer>
                     </Grid>
                 </Grid>
             </TabItem>

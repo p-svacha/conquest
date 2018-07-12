@@ -18,14 +18,10 @@ namespace RaceSimulator
         public Dictionary<Driver, int> StarterGridDictionary = new Dictionary<Driver, int>();
         public int Id;
         public string Name;
-        public int Mode;
-        public int ModeLimit;
+        public Format Format;
         public int RacesDriven;
-        public int State;
+        public ChampionshipState State;
         public string Icon;
-        public int numPromoted;
-        public int numRelegated;
-        public List<int> Scoring = new List<int>();
 
         public Excel._Worksheet ExcelWorksheet;
         public Excel.Range ExcelRange;
@@ -37,6 +33,11 @@ namespace RaceSimulator
 
         private Random Random = new Random();
         private int currentDriver;
+
+        private Label customLabel;
+
+        private int CRASH_PROBABILITY = 16;
+        private int GODRUN_PROBABILITY = 8;
 
         public Championship(int id, Excel._Worksheet ws, List<Driver> allDrivers)
         {
@@ -52,6 +53,48 @@ namespace RaceSimulator
             LoadData(allDrivers);
         }
 
+        public Championship(List<Driver> drivers, Format format, Grid starterGrid, Grid racerGrid, Label customLabel)
+        {
+            Drivers = drivers;
+            Format = format;
+            StarterGrid = starterGrid;
+            RacerGrid = racerGrid;
+            this.customLabel = customLabel;
+            LoadStarterGrid();
+        }
+
+        private void LoadStarterGrid()
+        {
+            StarterGridDictionary.Clear();
+            Drivers = Drivers.OrderByDescending(x => x.SeasonPoints).ThenByDescending(x => x.Rating).ToList();
+            for (int i = 0; i < Drivers.Count; i++)
+            {
+                StarterGridDictionary.Add(Drivers[i], i);
+                StarterGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                DriverPanel dp = new DriverPanel(Drivers[i], false);
+                dp.SetRank(i + 1);
+                dp.SetRating(Drivers[i].SeasonPoints);
+                dp.SetValue(Grid.RowProperty, i);
+                Rectangle r;
+                if (i < Format.NumGreen)
+                {
+                    r = new Rectangle { Fill = new SolidColorBrush(Color.FromRgb(0xCC, 0xEE, 0xCC)) };
+                }
+                else if (i < Drivers.Count - Format.NumRed)
+                {
+                    r = new Rectangle { Fill = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC)) };
+                }
+                else
+                {
+                    r = new Rectangle { Fill = new SolidColorBrush(Color.FromRgb(0xEE, 0xCC, 0xCC)) };
+                }
+                r.SetValue(Grid.RowProperty, i);
+                StarterGrid.Children.Add(r);
+                StarterGrid.Children.Add(dp);
+            }
+            for (int i = Drivers.Count; i < 16; i++) StarterGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        }
+
         public void LoadData(List<Driver> allDrivers)
         {
             try
@@ -63,25 +106,9 @@ namespace RaceSimulator
                 int row = 1;
                 Name = ExcelRange.Cells[row, 1].Value2.ToString();
                 row++;
-                Mode = (int)(ExcelRange.Cells[row, 1].Value2);
-                ModeLimit = (int)(ExcelRange.Cells[row, 2].Value2);
                 row++;
-                string scoringString = ExcelRange.Cells[row, 1].Value2.ToString();
-                string[] scorings = scoringString.Split(',');
-                foreach(string s in scorings)
-                {
-                    Scoring.Add(int.Parse(s));
-                }
                 if (ExcelRange.Cells[row, 2].Value2 != null) Icon = ExcelRange.Cells[row, 2].Value2.ToString();
                 row++;
-                if (Name.StartsWith("World League"))
-                {
-                    string relString = scoringString = ExcelRange.Cells[row, 1].Value2.ToString();
-                    string[] rels = relString.Split(',');
-                    numPromoted = int.Parse(rels[0]);
-                    numRelegated = int.Parse(rels[1]);
-                    row++;
-                }
 
                 for (int i = row; i <= rowCount; i++)
                 {
@@ -102,11 +129,11 @@ namespace RaceSimulator
                     if (Name.StartsWith("World League"))
                     {
                         Rectangle r;
-                        if (i < numPromoted)
+                        if (i < Format.NumGreen)
                         {
                             r = new Rectangle { Fill = new SolidColorBrush(Color.FromRgb(0xCC, 0xEE, 0xCC)) };
                         }
-                        else if (i < Drivers.Count - numRelegated)
+                        else if (i < Drivers.Count - Format.NumRed)
                         {
                             r = new Rectangle { Fill = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC)) };
                         }
@@ -121,16 +148,12 @@ namespace RaceSimulator
                 }
 
                 if (Drivers[0].SeasonPoints == 0)
-                {
-                    State = 0;
-                    foreach (Driver d in Drivers) d.ActiveChampionships.Add(this);
-                }
-                else if (Drivers[0].SeasonPoints < ModeLimit || Drivers[0].SeasonPoints == Drivers[1].SeasonPoints)
-                {
-                    State = 1;
-                    foreach (Driver d in Drivers) d.ActiveChampionships.Add(this);
-                }
-                else State = 2;
+                    State = ChampionshipState.Open;
+                else if (Format.IsFinished(this))
+                    State = ChampionshipState.Completed;
+                else
+                    State = ChampionshipState.Running;
+                foreach (Driver d in Drivers) d.Championships.Add(this);
             }
             finally
             {
@@ -141,17 +164,28 @@ namespace RaceSimulator
 
         public void StartRace()
         {
+            int crashes = 0;
+            int godRuns = 0;
             foreach (Driver driver in Drivers)
             {
-                driver.RaceTime = RandomNormal(driver.Rating, 150);
-                if(Random.Next(100) < 20)
+                driver.RaceTime = RandomNormal(driver.Rating, 200);
+                int rng = Random.Next(100);
+                if(rng < CRASH_PROBABILITY)
                 {
-                    int crashIntensity = Random.Next(3);
-                    Console.WriteLine(driver.Name + " crashed! (Intensity " + (crashIntensity + 1) + ")");
-                    driver.RaceTime /= (crashIntensity + 2);
+                    crashes++;
+                    driver.RaceTime = 0;
+                }
+                else if(rng < CRASH_PROBABILITY + GODRUN_PROBABILITY)
+                {
+                    godRuns++;
+                    driver.RaceTime = RandomNormal(10000, 1000); 
                 }
                 RacerGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             }
+            Console.WriteLine(crashes + " crashes!");
+            Console.WriteLine(godRuns + " god runs!");
+            customLabel.Content = crashes + " crashes | " + godRuns + " god runs";
+            for (int i = Drivers.Count; i < 16; i++) RacerGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             Drivers = Drivers.OrderBy(x => x.RaceTime).ToList();
         }
 
@@ -161,15 +195,26 @@ namespace RaceSimulator
             int bonus = 2; // a racer's rating will go up by this value per race IN AVERAGE 
 
             int rank = Drivers.Count - currentDriver;
-            int expectedRatingRank = Drivers.OrderByDescending(x => x.Rating).ToList().IndexOf(Drivers[currentDriver]) + 1;
+
             int expectedRankRating = Drivers.OrderByDescending(x => x.Rating).ToList()[rank - 1].Rating;
             int ratingChangeFromDiffDromExpectedRating = (expectedRankRating - Drivers[currentDriver].Rating) / 12;
-            //int ratingChangeFromDiffFromExpectedRatingRank = expectedRatingRank - rank;
+
+            float seasonScaleFactor = Format.MaxSeasonRatingChange / (Drivers.Count - 1);
             int expectedSeasonRank = Drivers.OrderByDescending(x => x.SeasonPoints).ThenByDescending(x => x.Rating).ToList().IndexOf(Drivers[currentDriver]) + 1;
             int ratingChangeFromDiffFromExpectedSeasonRank = expectedSeasonRank - rank;
+            ratingChangeFromDiffFromExpectedSeasonRank = (int)(ratingChangeFromDiffFromExpectedSeasonRank * seasonScaleFactor);
+
+
             int ratingChangeFromMood = Random.Next(11) - 5;
-            int ratingChangeFromRank = Drivers.Count / 2 - rank < 0 ? Drivers.Count / 2 - rank : Drivers.Count / 2 - rank + 1;
-            ratingChangeFromRank *= 2;
+
+            int ratingChangeFromRank;
+            if (Drivers.Count % 2 != 0) ratingChangeFromRank = (Drivers.Count + 1) / 2 - rank;
+            else ratingChangeFromRank = Drivers.Count / 2 - rank < 0 ? Drivers.Count / 2 - rank : Drivers.Count / 2 - rank + 1;
+            float rankScaleFactor;
+            if (Drivers.Count % 2 != 0) rankScaleFactor = Format.MaxRankRatingChange / ((Drivers.Count + 1) / 2 - 1);
+            else rankScaleFactor = Format.MaxRankRatingChange / (Drivers.Count / 2);
+            ratingChangeFromRank = (int)(ratingChangeFromRank * rankScaleFactor);
+
             Drivers[currentDriver].RatingChange = ratingChangeFromDiffDromExpectedRating + ratingChangeFromDiffFromExpectedSeasonRank + ratingChangeFromMood + ratingChangeFromRank + bonus;
             Console.WriteLine(Drivers[currentDriver].Name + "'s rating changed from " + Drivers[currentDriver].Rating + " to " + (Drivers[currentDriver].Rating + Drivers[currentDriver].RatingChange) + " [" + (Drivers[currentDriver].RatingChange > 0 ? "+" + Drivers[currentDriver].RatingChange : Drivers[currentDriver].RatingChange + "") + "] (Race: " + ratingChangeFromRank + ", Rating: " + ratingChangeFromDiffDromExpectedRating + ", Season: " + ratingChangeFromDiffFromExpectedSeasonRank + ", Mood: " + ratingChangeFromMood + ", Bonus: " + bonus + ").");
 
@@ -182,7 +227,7 @@ namespace RaceSimulator
 
             DriverPanel seasonPanel = (DriverPanel)StarterGrid.Children[StarterGridDictionary[Drivers[currentDriver]] * 2 + 1];
             seasonPanel.SetValue(Control.BackgroundProperty, new SolidColorBrush(Color.FromArgb(0x33, 0x00, 0x00, 0x00)));
-            if (rank <= Scoring.Count) seasonPanel.SetRatingChange(Scoring[rank - 1]);
+            if (rank <= Format.Scoring.Length && Drivers[currentDriver].RaceTime > 0) seasonPanel.SetRatingChange(Format.Scoring[rank - 1]);
 
             currentDriver++;
 
@@ -200,9 +245,10 @@ namespace RaceSimulator
             return true;
         }
 
-        public void EndRace()
+        public void EndRace(bool customRace)
         {
             Drivers = Drivers.OrderByDescending(x => x.RaceTime).ToList();
+            if (customRace) RacesDriven++;
 
             Excel.Application xlApp = null;
             Excel._Worksheet driverRatingsWorksheet = null;
@@ -215,9 +261,12 @@ namespace RaceSimulator
                 xlApp = new Excel.Application();
                 xlWorkbook = xlApp.Workbooks.Open("C:\\Microsoft\\conquest\\RaceSimulator\\drivers.xlsx");
                 driverRatingsWorksheet = xlWorkbook.Sheets[2];
-                currentSeasonWorksheet = xlWorkbook.Sheets[Id];
                 driverRatingsRange = driverRatingsWorksheet.UsedRange;
-                currentSeasonRange = currentSeasonWorksheet.UsedRange;
+                if (!customRace)
+                {
+                    currentSeasonWorksheet = xlWorkbook.Sheets[Id];
+                    currentSeasonRange = currentSeasonWorksheet.UsedRange;
+                }
 
                 for (int i = 0; i < Drivers.Count; i++)
                 {
@@ -234,15 +283,23 @@ namespace RaceSimulator
                     }
 
                     //Season points
-                    rowCount = currentSeasonRange.Rows.Count;
-                    colCount = currentSeasonRange.Columns.Count;
-
-                    for (int j = 1; j <= rowCount; j++)
+                    if (customRace)
                     {
-                        if (currentSeasonRange.Cells[j, 1].Value2.ToString() == Drivers[i].Name)
+                        if (i < Format.Scoring.Length && Drivers[i].RaceTime > 0) Drivers[i].SeasonPoints += Format.Scoring[i];
+                        Drivers[i].Rating += Drivers[i].RatingChange;
+                    }
+                    else
+                    {
+                        rowCount = currentSeasonRange.Rows.Count;
+                        colCount = currentSeasonRange.Columns.Count;
+
+                        for (int j = 1; j <= rowCount; j++)
                         {
-                            if (i < Scoring.Count) currentSeasonRange.Cells[j, colCount + 1] = Scoring[i];
-                            else currentSeasonRange.Cells[j, colCount + 1] = 0;
+                            if (currentSeasonRange.Cells[j, 1].Value2.ToString() == Drivers[i].Name)
+                            {
+                                if (i < Format.Scoring.Length && Drivers[i].RaceTime > 0) currentSeasonRange.Cells[j, colCount + 1] = Format.Scoring[i];
+                                else currentSeasonRange.Cells[j, colCount + 1] = 0;
+                            }
                         }
                     }
                 }
@@ -252,13 +309,26 @@ namespace RaceSimulator
                 //Unload
                 Marshal.ReleaseComObject(driverRatingsRange);
                 Marshal.ReleaseComObject(driverRatingsWorksheet);
-                Marshal.ReleaseComObject(currentSeasonRange);
-                Marshal.ReleaseComObject(currentSeasonWorksheet);
+                if (!customRace)
+                {
+                    Marshal.ReleaseComObject(currentSeasonRange);
+                    Marshal.ReleaseComObject(currentSeasonWorksheet);
+                }
                 xlWorkbook.Close();
                 Marshal.ReleaseComObject(xlWorkbook);
                 xlApp.Quit();
                 Marshal.ReleaseComObject(xlApp);
             }
+            if(customRace)
+            {
+                if (Format.Id <= 2) customLabel.Content = RacesDriven + " races completed.";
+                StarterGrid.Children.Clear();
+                StarterGrid.RowDefinitions.Clear();
+                RacerGrid.Children.Clear();
+                RacerGrid.RowDefinitions.Clear();
+                LoadStarterGrid();
+            }
+            currentDriver = 0;
         }
 
         private int RandomNormal(int mean, int stdDev)

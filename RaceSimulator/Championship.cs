@@ -249,13 +249,34 @@ namespace RaceSimulator
         {
             Drivers = Drivers.OrderByDescending(x => x.RaceTime).ToList();
             if (customRace) RacesDriven++;
+            
+            for (int i = 0; i < Drivers.Count; i++)
+            {
+                if (i < Format.Scoring.Length && Drivers[i].RaceTime > 0) Drivers[i].SeasonPoints += Format.Scoring[i];
+                Drivers[i].Rating += Drivers[i].RatingChange;
+            }
+            
+            if(customRace)
+            {
+                if (Format.Id <= 2) customLabel.Content = RacesDriven + " races completed.";
+                StarterGrid.Children.Clear();
+                StarterGrid.RowDefinitions.Clear();
+                RacerGrid.Children.Clear();
+                RacerGrid.RowDefinitions.Clear();
+                LoadStarterGrid();
+            }
+            currentDriver = 0;
+        }
 
+        public void SaveRatingsToExcel(bool customRace)
+        {
             Excel.Application xlApp = null;
             Excel._Worksheet driverRatingsWorksheet = null;
             Excel._Worksheet currentSeasonWorksheet = null;
             Excel.Range driverRatingsRange = null;
             Excel.Range currentSeasonRange = null;
             Excel.Workbook xlWorkbook = null;
+
             try
             {
                 xlApp = new Excel.Application();
@@ -270,28 +291,21 @@ namespace RaceSimulator
 
                 for (int i = 0; i < Drivers.Count; i++)
                 {
-                    //Rating
                     int rowCount = driverRatingsRange.Rows.Count;
-                    int colCount = driverRatingsRange.Columns.Count;
 
                     for (int j = 1; j <= rowCount; j++)
                     {
                         if (driverRatingsRange.Cells[j, 1].Value2.ToString() == Drivers[i].Name)
                         {
-                            driverRatingsRange.Cells[j, colCount + 1] = Drivers[i].RatingChange;
+                            driverRatingsRange.Cells[j, 3] = Drivers[i].Rating;
                         }
                     }
 
-                    //Season points
-                    if (customRace)
-                    {
-                        if (i < Format.Scoring.Length && Drivers[i].RaceTime > 0) Drivers[i].SeasonPoints += Format.Scoring[i];
-                        Drivers[i].Rating += Drivers[i].RatingChange;
-                    }
-                    else
+                    //maybe not working idk
+                    if(!customRace)
                     {
                         rowCount = currentSeasonRange.Rows.Count;
-                        colCount = currentSeasonRange.Columns.Count;
+                        int colCount = currentSeasonRange.Columns.Count;
 
                         for (int j = 1; j <= rowCount; j++)
                         {
@@ -319,16 +333,6 @@ namespace RaceSimulator
                 xlApp.Quit();
                 Marshal.ReleaseComObject(xlApp);
             }
-            if(customRace)
-            {
-                if (Format.Id <= 2) customLabel.Content = RacesDriven + " races completed.";
-                StarterGrid.Children.Clear();
-                StarterGrid.RowDefinitions.Clear();
-                RacerGrid.Children.Clear();
-                RacerGrid.RowDefinitions.Clear();
-                LoadStarterGrid();
-            }
-            currentDriver = 0;
         }
 
         private int RandomNormal(int mean, int stdDev)

@@ -42,9 +42,9 @@ namespace RaceSimulator
                     formats = new List<Format>()
                     {
                         new Format(0, "Continental WC Qualifier", new int[] {25,18,15,12,10,8,6,4,2,1}, (cs) => {return cs.RacesDriven >= 12 && cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[3].SeasonPoints != cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[4].SeasonPoints; }, 20, 20, 4, 99, 4),
-                        new Format(1, "WC Group Stage", new int[] {10,7,5,3,2,1}, (cs) => { return cs.RacesDriven >= 8 && cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[3].SeasonPoints != cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[4].SeasonPoints; }, 12, 8, 8, 8, 4, 4),
-                        new Format(2, "WC K.O. Phase", new int[] {10,6,4,3}, (cs) => {return cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[1].SeasonPoints >= 50 && cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[2].SeasonPoints != cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[1].SeasonPoints; }, 8, 4, 4, 4, 2, 2),
-                        new Format(3, "WC Finals", new int[] {10,6,4,3}, (cs) => {return cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[0].SeasonPoints >= 80 && cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[0].SeasonPoints != cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[1].SeasonPoints; }, 8, 4, 4, 4, 2, 2),
+                        new Format(1, "WC Group Stage", new int[] {10,7,5,3,2,1}, (cs) => { return cs.RacesDriven >= 8 && cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[3].SeasonPoints != cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[4].SeasonPoints; }, 15, 10, 8, 8, 4, 4),
+                        new Format(2, "WC K.O. Phase", new int[] {10,6,4,3}, (cs) => {return cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[1].SeasonPoints >= 50 && cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[2].SeasonPoints != cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[1].SeasonPoints; }, 10, 5, 4, 4, 2, 2),
+                        new Format(3, "WC Finals", new int[] {10,6,4,3}, (cs) => {return cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[0].SeasonPoints >= 80 && cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[0].SeasonPoints != cs.Drivers.OrderByDescending(x => x.SeasonPoints).ToList()[1].SeasonPoints; }, 10, 5, 4, 4, 2, 2),
                     };
                 }
                 return formats;

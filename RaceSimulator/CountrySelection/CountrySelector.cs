@@ -14,7 +14,6 @@ namespace RaceSimulator.CountrySelection
         private Random Random = new Random();
         private ComboBox Region1Selector;
         private ComboBox Region2Selector;
-        private Dictionary<string, List<string>> Regions2;
         public List<Driver> Drivers;
         public List<Country> AllCountries = new List<Country>();
         private List<Country> UnusedCountries

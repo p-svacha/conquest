@@ -1,11 +1,14 @@
 ﻿using RaceSimulator.CountrySelection;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Markup;
 using System.Windows.Media;
+using System.Xml;
 using Excel = Microsoft.Office.Interop.Excel;
 
 namespace RaceSimulator
@@ -22,6 +25,7 @@ namespace RaceSimulator
         private List<Championship> Championships = new List<Championship>();
         private int currentChampionship = -1;
         private Excel.Workbook xlWorkbook;
+        private List<UIElement> CustomCSHeaderOriginalButtons = new List<UIElement>();
 
         public MainWindow()
         {
@@ -31,6 +35,7 @@ namespace RaceSimulator
             ReloadDriverSelection();
             btnNextDriver.IsEnabled = false;
             btnEndRace.IsEnabled = false;
+            foreach (UIElement elem in CustomCSHeader.Children) CustomCSHeaderOriginalButtons.Add(elem);
         }
 
         private void ResetData()
@@ -150,7 +155,7 @@ namespace RaceSimulator
                 }
             }
             else CustomRaceRegion2Selector.IsEnabled = false;
-            if (CustomSearchDriver.Text != "") CustomUnselectedDrivers = CustomUnselectedDrivers.Where(x => x.Name.ToLower().Contains(CustomSearchDriver.Text.ToLower())).ToList();
+            if (CustomSearchDriver.Text != "") CustomUnselectedDrivers = CustomUnselectedDrivers.Where(x => x.Name.ToLower().Contains(CustomSearchDriver.Text.ToLower()) || x.Country.Region2.ToLower().Contains(CustomSearchDriver.Text.ToLower()) || x.Country.Region1.ToLower().Contains(CustomSearchDriver.Text.ToLower()) || x.Country.Name.ToLower().Contains(CustomSearchDriver.Text.ToLower())).ToList();
 
             for (int i = 0; i < CustomUnselectedDrivers.Count; i++)
             {
@@ -214,6 +219,7 @@ namespace RaceSimulator
         private void btnEndRace_Click(object sender, RoutedEventArgs e)
         {
             Championships[currentChampionship].EndRace(false);
+            Championships[currentChampionship].SaveRatingsToExcel(false);
             btnEndRace.IsEnabled = false;
             btnStartRace.IsEnabled = true;
             ResetData();
@@ -297,34 +303,84 @@ namespace RaceSimulator
                 CustomCSHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 CustomCSHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 CustomCSHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                CustomCSHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                CustomCSHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                CustomCSHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
                 Button CustomCSStartRace = new Button { Content = "Start Race" };
                 Button CustomCSNextDriver = new Button { Content = "Next Driver" };
+                Button CustomCSFinishRace = new Button { Content = "Finish Race" };
+                Button CustomCSFinishCS = new Button { Content = "Finish Championship" };
                 Button CustomCSEndRace = new Button { Content = "End Race" };
+                Button CustomCSBackToDriverSelection = new Button { Content = "Back" };
 
                 CustomCSLabel.SetValue(Grid.ColumnProperty, 0);
 
                 CustomCSStartRace.SetValue(Grid.ColumnProperty, 1);
-                CustomCSStartRace.Click += (sender2, e2) => { cs.StartRace(); CustomCSStartRace.IsEnabled = false; CustomCSNextDriver.IsEnabled = true; };
+                CustomCSStartRace.Click += (sender2, e2) => { cs.StartRace(); CustomCSStartRace.IsEnabled = false; CustomCSNextDriver.IsEnabled = true; CustomCSFinishRace.IsEnabled = true; };
 
                 CustomCSNextDriver.SetValue(Grid.ColumnProperty, 2);
-                CustomCSNextDriver.Click += (sender2, e2) => { if (!cs.NextDriver()) { CustomCSNextDriver.IsEnabled = false; CustomCSEndRace.IsEnabled = true; }; };
+                CustomCSNextDriver.Click += (sender2, e2) => { if (!cs.NextDriver()) { CustomCSNextDriver.IsEnabled = false; CustomCSFinishRace.IsEnabled = false; CustomCSEndRace.IsEnabled = true; }; };
                 CustomCSNextDriver.IsEnabled = false;
 
                 CustomCSEndRace.SetValue(Grid.ColumnProperty, 3);
                 CustomCSEndRace.Click += (sender2, e2) => 
                 {
                     cs.EndRace(true);
+                    cs.SaveRatingsToExcel(true);
                     CustomCSEndRace.IsEnabled = false;
                     if (!cs.Format.IsFinished(cs)) CustomCSStartRace.IsEnabled = true;
                     ResetData();
                 };
                 CustomCSEndRace.IsEnabled = false;
 
+                CustomCSFinishRace.SetValue(Grid.ColumnProperty, 4);
+                CustomCSFinishRace.Click += (sender2, e2) =>
+                {
+                    while (cs.NextDriver()) ;
+                    CustomCSFinishRace.IsEnabled = false;
+                    CustomCSNextDriver.IsEnabled = false;
+                    CustomCSEndRace.IsEnabled = true;
+                };
+                CustomCSFinishRace.IsEnabled = false;
+
+                CustomCSFinishCS.SetValue(Grid.ColumnProperty, 5);
+                CustomCSFinishCS.Click += (sender2, e2) =>
+                {
+                    while(!cs.Format.IsFinished(cs))
+                    {
+                        cs.StartRace();
+                        while (cs.NextDriver()) ;
+                        cs.EndRace(true);
+                    }
+                    cs.SaveRatingsToExcel(true);
+                    ResetData();
+                    CustomCSFinishCS.IsEnabled = false;
+                    CustomCSStartRace.IsEnabled = false;
+                    CustomCSFinishRace.IsEnabled = false;
+                    CustomCSEndRace.IsEnabled = false;
+                    CustomCSNextDriver.IsEnabled = false;
+                };
+
+                CustomCSBackToDriverSelection.SetValue(Grid.ColumnProperty, 6);
+                CustomCSBackToDriverSelection.Click += (sender2, e2) =>
+                {
+                    CustomCSHeader.Children.Clear();
+                    foreach(UIElement elem in CustomCSHeaderOriginalButtons)
+                    {
+                        CustomCSHeader.Children.Add(elem);
+                    }
+                    CustomSelectedDrivers.Clear();
+                    ReloadDriverSelection();
+                };
+
                 CustomCSHeader.Children.Add(CustomCSLabel);
                 CustomCSHeader.Children.Add(CustomCSStartRace);
                 CustomCSHeader.Children.Add(CustomCSNextDriver);
                 CustomCSHeader.Children.Add(CustomCSEndRace);
+                CustomCSHeader.Children.Add(CustomCSFinishRace);
+                CustomCSHeader.Children.Add(CustomCSFinishCS);
+                CustomCSHeader.Children.Add(CustomCSBackToDriverSelection);
             }
             else Console.WriteLine("Too many or too few drivers selected.");
         }
